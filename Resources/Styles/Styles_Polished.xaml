@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<!--
+    Styles.xaml – Überarbeitete globale Styles
+    
+    Was sich ändert:
+    1. Design-Tokens als Farb-Ressourcen (eine Änderung = überall wirksam)
+    2. Einheitliche Card-Styles mit Schatten
+    3. Einheitliche Button-Styles mit VisualStateManager
+    4. Einheitliche Entry-Styles mit Fokus-Farbe
+    5. Konsistente Border-Radii
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ========================================================
+         DESIGN TOKENS – Alle Farben zentral
+         Ändere hier einen Wert → wirkt überall in der App
+         ======================================================== -->
+
+    <!-- Markenfarben -->
+    <Color x:Key="PrimaryColor">#00897b</Color>
+    <Color x:Key="PrimaryLight">#00d2a8</Color>
+    <Color x:Key="PrimaryDark">#00695c</Color>
+    <Color x:Key="PrimaryGlow">#4db6ac</Color>
+
+    <!-- Akzent für "Angebot" -->
+    <Color x:Key="AccentOrange">#e67e22</Color>
+    <Color x:Key="AccentOrangeLight">#f39c12</Color>
+
+    <!-- Neutrale Farben -->
+    <Color x:Key="SurfaceColor">White</Color>
+    <Color x:Key="BackgroundColor">#F7F9FA</Color>
+    <Color x:Key="BorderColor">#E0E0E0</Color>
+    <Color x:Key="TextPrimary">#1A1A1A</Color>
+    <Color x:Key="TextSecondary">#666666</Color>
+    <Color x:Key="TextMuted">#AAAAAA</Color>
+
+    <!-- Semantische Farben -->
+    <Color x:Key="ErrorColor">#E53935</Color>
+    <Color x:Key="ErrorSurface">#FFF0F0</Color>
+    <Color x:Key="SuccessColor">#43A047</Color>
+    <Color x:Key="WarningColor">#FB8C00</Color>
+
+    <!-- ========================================================
+         CARD STYLE – wiederverwendbar für alle Karten
+         Verwendung: Style="{StaticResource CardStyle}"
+         ======================================================== -->
+    <Style x:Key="CardStyle" TargetType="Border">
+        <Setter Property="BackgroundColor">
+            <Setter.Value>
+                <AppThemeBinding Light="White" Dark="#1E2A28"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="StrokeThickness"  Value="0"/>
+        <Setter Property="Padding"          Value="0"/>
+        <Setter Property="StrokeShape">
+            <Setter.Value>
+                <RoundRectangle CornerRadius="20"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="Black" Opacity="0.08" Radius="16" Offset="0,4"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================================
+         PRIMÄR-BUTTON – Grüner Gradient-Button
+         Verwendung: Style="{StaticResource PrimaryButtonStyle}"
+         ======================================================== -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Border">
+        <Setter Property="HeightRequest"   Value="54"/>
+        <Setter Property="StrokeThickness" Value="0"/>
+        <Setter Property="StrokeShape">
+            <Setter.Value>
+                <RoundRectangle CornerRadius="27"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="{StaticResource PrimaryLight}" Offset="0.0"/>
+                    <GradientStop Color="{StaticResource PrimaryDark}"  Offset="1.0"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow
+                    Brush="{StaticResource PrimaryColor}"
+                    Opacity="0.45"
+                    Radius="16"
+                    Offset="0,6"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- GHOST-BUTTON – Transparenter Button mit Rahmen -->
+    <Style x:Key="GhostButtonStyle" TargetType="Border">
+        <Setter Property="HeightRequest"    Value="54"/>
+        <Setter Property="BackgroundColor"  Value="Transparent"/>
+        <Setter Property="Stroke"           Value="{StaticResource BorderColor}"/>
+        <Setter Property="StrokeThickness"  Value="1.5"/>
+        <Setter Property="StrokeShape">
+            <Setter.Value>
+                <RoundRectangle CornerRadius="27"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================================
+         ENTRY STYLE – Einheitliche Eingabefelder
+         (kein impliziter Stil – würde AppThemeBinding aus Styles.xaml überschreiben)
+         Verwende stattdessen den benannten EntryBorderStyle-Wrapper.
+         ======================================================== -->
+
+    <!-- ENTRY-WRAPPER Border (mit Fokus-Farbe via Code-Behind) -->
+    <Style x:Key="EntryBorderStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceColor}"/>
+        <Setter Property="Stroke"          Value="{StaticResource BorderColor}"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="StrokeShape">
+            <Setter.Value>
+                <RoundRectangle CornerRadius="16"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="Black" Opacity="0.05" Radius="6" Offset="0,2"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================================
+         LABEL STYLES
+         ======================================================== -->
+    <Style x:Key="HeadingStyle" TargetType="Label">
+        <Setter Property="FontSize"       Value="22"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="TextColor"      Value="{StaticResource TextPrimary}"/>
+    </Style>
+
+    <Style x:Key="SubheadingStyle" TargetType="Label">
+        <Setter Property="FontSize"  Value="14"/>
+        <Setter Property="TextColor" Value="{StaticResource TextSecondary}"/>
+    </Style>
+
+    <Style x:Key="FieldLabelStyle" TargetType="Label">
+        <Setter Property="FontSize"       Value="13"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="TextColor"      Value="{StaticResource TextSecondary}"/>
+        <Setter Property="Margin"         Value="0,0,0,4"/>
+    </Style>
+
+    <!-- ========================================================
+         AKTIVITÄTSINDIKATOR (Spinner)
+         ======================================================== -->
+    <Style TargetType="ActivityIndicator">
+        <Setter Property="Color" Value="{StaticResource PrimaryColor}"/>
+    </Style>
+
+</ResourceDictionary>

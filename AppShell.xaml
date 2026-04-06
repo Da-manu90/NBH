@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- ============================================================
+     AppShell.xaml – Angepasst für CustomTabBar
+     ============================================================
+     ÄNDERUNG: Shell.TabBarIsVisible="False" auf der TabBar.
+     Die native MAUI-TabBar wird komplett ausgeblendet.
+     Stattdessen zeigt jede Tab-Seite die CustomTabBar
+     als ContentView am unteren Rand.
+     ============================================================ -->
+<Shell
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:NBH"
+    x:Class="NBH.AppShell"
+    FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Padding="0">
+
+    <!-- Einzelseiten (keine Tabs) -->
+    <ShellContent
+        ContentTemplate="{DataTemplate local:LoginPage}"
+        Route="LoginPage"
+        Shell.NavBarIsVisible="False"
+        Shell.TabBarIsVisible="False" />
+
+    <ShellContent
+        ContentTemplate="{DataTemplate local:DetailPage}"
+        Route="DetailPage"
+        Shell.NavBarIsVisible="False"
+        Shell.TabBarIsVisible="False" />
+
+    <ShellContent
+        ContentTemplate="{DataTemplate local:UserProfilePage}"
+        Route="UserProfilePage"
+        Shell.NavBarIsVisible="False"
+        Shell.TabBarIsVisible="False" />
+
+    <!-- =======================================================
+         TabBar: Bleibt für die Shell-Navigation bestehen,
+         aber wird VISUELL komplett ausgeblendet.
+         Die CustomTabBar übernimmt die Darstellung.
+         ======================================================= -->
+    <TabBar Route="MainTabs"
+            Shell.TabBarIsVisible="False">
+
+        <Tab Title="Profile" Icon="profile.png" Route="ProfileTab">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:ProfilePage}"
+                Route="ProfilePage"
+                Shell.NavBarIsVisible="False" />
+        </Tab>
+
+        <Tab Title="Map" Icon="map.png" Route="MapTab">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:MapPage}"
+                Route="MapPage"
+                Shell.NavBarIsVisible="False" />
+        </Tab>
+
+        <Tab Title="Add" Icon="add.png" Route="AddTab">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:AddPage}"
+                Route="AddPage"
+                Shell.NavBarIsVisible="False" />
+        </Tab>
+
+        <Tab Title="Chat" Icon="chat.png" Route="ChatTab">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:ChatViewPage}"
+                Route="ChatViewPage"
+                Shell.NavBarIsVisible="False" />
+        </Tab>
+
+        <Tab Title="FAQ" Icon="faq.png" Route="FaqTab">
+            <ShellContent
+                ContentTemplate="{DataTemplate local:FAQPage}"
+                Route="FAQPage"
+                Shell.NavBarIsVisible="False" />
+        </Tab>
+
+    </TabBar>
+</Shell>

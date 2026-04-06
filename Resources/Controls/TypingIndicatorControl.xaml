@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NBH.Resources.Controls.TypingIndicatorControl"
+             IsVisible="False"
+             HeightRequest="25">
+    
+    <HorizontalStackLayout Spacing="5" HorizontalOptions="Start" VerticalOptions="Center" Padding="15,0">
+        <Ellipse x:Name="Dot1" WidthRequest="8" HeightRequest="8" Fill="#A0A0A0" />
+        <Ellipse x:Name="Dot2" WidthRequest="8" HeightRequest="8" Fill="#A0A0A0" />
+        <Ellipse x:Name="Dot3" WidthRequest="8" HeightRequest="8" Fill="#A0A0A0" />
+        <Label Text="schreibt..." FontSize="12" TextColor="#A0A0A0" VerticalOptions="Center" Margin="5,0,0,0" />
+    </HorizontalStackLayout>
+    
+</ContentView>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="NBH.CropImagePage"
+    Title="Bild zuschneiden"
+    Shell.NavBarIsVisible="False">
+    <Grid>
+        <!-- Das manipulierte Bild, das der Benutzer per Pinch und Pan transformieren kann -->
+        <Image x:Name="ManipulatedImage"
+               Aspect="AspectFill"
+               HorizontalOptions="FillAndExpand"
+               VerticalOptions="FillAndExpand">
+            <Image.GestureRecognizers>
+                <PinchGestureRecognizer PinchUpdated="OnPinchUpdated" />
+                <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+            </Image.GestureRecognizers>
+        </Image>
+
+        <!-- Overlay: Zeichnet einen halbtransparenten Overlay mit einem runden Ausschnitt -->
+        <GraphicsView x:Name="OverlayGraphicsView"
+                      HorizontalOptions="FillAndExpand"
+                      VerticalOptions="FillAndExpand"
+                      BackgroundColor="Transparent"
+                      InputTransparent="True" />
+
+        <!-- Crop & Upload Button -->
+        <Button Text="Hochladen"
+                HorizontalOptions="Center"
+                VerticalOptions="End"
+                Margin="20"
+                Clicked="OnCropButtonClicked" />
+    </Grid>
+</ContentPage>

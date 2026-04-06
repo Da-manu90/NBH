@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NBH.Resources.Controls.EmptyStateView">
+
+    <StackLayout Spacing="16" Padding="40,32" HorizontalOptions="Center" VerticalOptions="Center">
+
+        <!-- Illustration / Icon -->
+        <Image x:Name="StateIcon"
+               Source="{Binding IconSource, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+               HeightRequest="120"
+               WidthRequest="120"
+               HorizontalOptions="Center"
+               Opacity="0.6"/>
+
+        <!-- Titel -->
+        <Label x:Name="StateTitle"
+               HorizontalTextAlignment="Center"
+               Text="{Binding Title, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+               FontSize="22"
+               FontAttributes="Bold"
+               TextColor="{AppThemeBinding Light=Black, Dark=White}"
+               Opacity="0.8"/>
+
+        <!-- Beschreibung -->
+        <Label x:Name="StateDescription"
+               HorizontalTextAlignment="Center"
+               Text="{Binding Description, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+               FontSize="16"
+               TextColor="#888888"
+               MaxLines="3"
+               LineBreakMode="WordWrap"/>
+
+        <!-- CTA-Button (optional) -->
+        <Button x:Name="StateActionButton"
+                Text="{Binding ActionButtonText, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                Command="{Binding ActionCommand, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                IsVisible="{Binding HasAction, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                CornerRadius="22"
+                HeightRequest="44"
+                BackgroundColor="#00897b"
+                TextColor="White"
+                FontAttributes="Bold"
+                FontSize="14"
+                Margin="0,8,0,0"/>
+
+    </StackLayout>
+</ContentView>

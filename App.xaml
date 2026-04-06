@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:NBH.Resources.Models"
+             x:Class="NBH.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Konverter -->
+            <models:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+            <models:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+            <models:NotificationIconConverter x:Key="NotificationIconConverter"/>
+
+            <!-- Globale Stile -->
+            <!-- StackLayout-Stil -->
+            <Style TargetType="StackLayout">
+                <Setter Property="VerticalOptions" Value="FillAndExpand" />
+                <Setter Property="HorizontalOptions" Value="FillAndExpand" />
+            </Style>
+
+            <!-- Label-Stil -->
+            <Style TargetType="Label">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="TextColor" Value="#333333" />
+            </Style>
+
+            <!-- Frame-Stil für Buttons -->
+            <Style TargetType="Frame" x:Key="ButtonFrameStyle">
+                <Setter Property="CornerRadius" Value="15" />
+                <Setter Property="Padding" Value="10" />
+                <Setter Property="BackgroundColor" Value="#ffffff" />
+                <Setter Property="HasShadow" Value="True" />
+            </Style>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Farben und Stile -->
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <!-- NEU: Polished Design-Tokens und Styles -->
+                <ResourceDictionary Source="Resources/Styles/Styles_Polished.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

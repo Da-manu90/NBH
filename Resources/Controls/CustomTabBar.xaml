@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NBH.Resources.Controls.CustomTabBar"
+             x:Name="TabBarRoot"
+             HeightRequest="110">
+
+    <Grid Padding="10,0,10,0"
+          VerticalOptions="End"
+          HeightRequest="110">
+
+        <!-- Hintergrund der gesamten TabBar -->
+        <Border x:Name="TabBarBackground"
+                StrokeThickness="1.5"
+                Stroke="#60FFFFFF"
+                Padding="0"
+                HeightRequest="80"
+                VerticalOptions="End"
+                Margin="2,0,2,5">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRectangle="25"/>
+            </Border.StrokeShape>
+            <Border.Background>
+                <SolidColorBrush Color="#E61E1E1E"/>
+            </Border.Background>
+
+            <Grid>
+                <!-- SLIDER -->
+                <Border x:Name="Slider"
+                        StrokeThickness="2"
+                        Stroke="#B0FFFFFF"
+                        HeightRequest="54"
+                        WidthRequest="65"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Start"
+                        Margin="4,0,0,0"
+                        Opacity="1"
+                        InputTransparent="True">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+                    <Border.Background>
+                        <SolidColorBrush Color="#40FFFFFF"/>
+                    </Border.Background>
+                    <Border.Shadow>
+                        <Shadow Brush="White"
+                                Opacity="0.3"
+                                Radius="20"
+                                Offset="0,0"/>
+                    </Border.Shadow>
+                </Border>
+
+                <!-- TAB-ITEMS -->
+                <Grid x:Name="TabItemsGrid"
+                      ColumnDefinitions="*,*,*,*,*"
+                      VerticalOptions="Fill"
+                      HorizontalOptions="Fill">
+
+                    <!-- TAB 0: Profil -->
+                    <Grid Grid.Column="0" x:Name="Tab0">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTab0Tapped"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Image x:Name="Icon0" Source="profile.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                <Image.Shadow>
+                                    <Shadow x:Name="Glow0" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
+                                </Image.Shadow>
+                            </Image>
+                            <Label x:Name="Label0" Text="Profil" FontSize="10" HorizontalOptions="Center" TextColor="White"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- TAB 1: Karte -->
+                    <Grid Grid.Column="1" x:Name="Tab1">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTab1Tapped"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Image x:Name="Icon1" Source="map.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                <Image.Shadow>
+                                    <Shadow x:Name="Glow1" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
+                                </Image.Shadow>
+                            </Image>
+                            <Label x:Name="Label1" Text="Karte" FontSize="10" HorizontalOptions="Center" TextColor="White"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- TAB 2: Neu -->
+                    <Grid Grid.Column="2" x:Name="Tab2">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTab2Tapped"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Image x:Name="Icon2" Source="add.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                <Image.Shadow>
+                                    <Shadow x:Name="Glow2" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
+                                </Image.Shadow>
+                            </Image>
+                            <Label x:Name="Label2" Text="Neu" FontSize="10" HorizontalOptions="Center" TextColor="White"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- TAB 3: Chat -->
+                    <Grid Grid.Column="3" x:Name="Tab3">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTab3Tapped"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Image x:Name="Icon3" Source="chat.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                <Image.Shadow>
+                                    <Shadow x:Name="Glow3" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
+                                </Image.Shadow>
+                            </Image>
+                            <Label x:Name="Label3" Text="Chat" FontSize="10" HorizontalOptions="Center" TextColor="White"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- TAB 4: FAQ (Blau) -->
+                    <Grid Grid.Column="4" x:Name="Tab4">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTab4Tapped"/>
+                        </Grid.GestureRecognizers>
+                        <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                            <Image x:Name="Icon4" Source="faq.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                <Image.Shadow>
+                                    <Shadow x:Name="Glow4" Brush="#318AC0" Opacity="0" Radius="15" Offset="0,0" />
+                                </Image.Shadow>
+                                <Image.Behaviors>
+                                    <toolkit:IconTintColorBehavior TinyColor="#318AC0" xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"/>
+                                </Image.Behaviors>
+                            </Image>
+                            <Label x:Name="Label4" Text="FAQ" FontSize="10" HorizontalOptions="Center" TextColor="#318AC0"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Grid>
+
+                <!-- ACTIVE DOT -->
+                <BoxView x:Name="ActiveDot"
+                         WidthRequest="6"
+                         HeightRequest="6"
+                         CornerRadius="3"
+                         Color="White"
+                         VerticalOptions="End"
+                         HorizontalOptions="Start"
+                         Margin="0,0,0,6"
+                         InputTransparent="True">
+                    <BoxView.Shadow>
+                        <Shadow Brush="White" Opacity="1" Radius="6" Offset="0,0"/>
+                    </BoxView.Shadow>
+                </BoxView>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

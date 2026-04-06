@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.companyname.nbh">
+	<application
+		android:allowBackup="true"
+		android:supportsRtl="true"
+		android:theme="@style/Theme.NBH.Launcher"
+		android:label="Care Community"
+		android:hardwareAccelerated="true"
+		android:enableOnBackInvokedCallback="true"
+		android:icon="@mipmap/icon"
+		android:roundIcon="@mipmap/icon">
+
+		<!-- Google Maps API-Schlüssel -->
+		<meta-data 
+			android:name="com.google.android.maps.v2.API_KEY" 
+			android:value="AIzaSyB1hvA-40mbb3FvFAdNijGDO9MSlj4ZIKo" />
+
+		<!-- Deeplink-Konfiguration -->
+		<activity android:name="MainActivity" android:exported="true">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="myapp" android:host="auth" android:pathPrefix="/callback" />
+			</intent-filter>
+		</activity>
+	</application>
+
+	<!-- Berechtigungen -->
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+</manifest>

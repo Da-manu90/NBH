@@ -1,0 +1,91 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NBH.SplashPage"
+             Shell.NavBarIsVisible="False"
+             Padding="0">
+
+    <Grid>
+        <!-- Dunkler Teal-Hintergrund mit Tiefe -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0.4,1">
+                <GradientStop Color="#0a1210" Offset="0.0"/>
+                <GradientStop Color="#0d1a17" Offset="0.5"/>
+                <GradientStop Color="#091110" Offset="1.0"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Äußerer Glow-Ring (weicher Lichtkegel hinter dem Logo) -->
+        <Ellipse x:Name="GlowOuter"
+                 Fill="#1800d2a8"
+                 WidthRequest="400"
+                 HeightRequest="400"
+                 Opacity="0"
+                 Scale="0.5"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"/>
+
+        <!-- Innerer Glow-Ring (konzentrierter, heller) -->
+        <Ellipse x:Name="GlowInner"
+                 Fill="#2200897b"
+                 WidthRequest="220"
+                 HeightRequest="220"
+                 Opacity="0"
+                 Scale="0.6"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"/>
+
+        <!-- Ripple-Ring 1 (expandiert beim "Aufprall" des Logos) -->
+        <Ellipse x:Name="RippleRing1"
+                 Stroke="#5000d2a8"
+                 StrokeThickness="2.5"
+                 Fill="Transparent"
+                 WidthRequest="170"
+                 HeightRequest="170"
+                 Opacity="0"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"/>
+
+        <!-- Ripple-Ring 2 (verzögertes Echo) -->
+        <Ellipse x:Name="RippleRing2"
+                 Stroke="#3000897b"
+                 StrokeThickness="1.5"
+                 Fill="Transparent"
+                 WidthRequest="170"
+                 HeightRequest="170"
+                 Opacity="0"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"/>
+
+        <!-- Logo (startet unsichtbar, klein, unterhalb der Mitte) -->
+        <Image x:Name="logo"
+               Source="logo_2x.png"
+               Opacity="0"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               HeightRequest="160"
+               WidthRequest="160"/>
+
+        <!-- Tagline – erscheint sanft nach dem Logo-Bounce -->
+        <Label x:Name="TaglineLabel"
+               Text="Gemeinsam. Näher. Stärker."
+               Opacity="0"
+               TextColor="#55ffffff"
+               FontSize="13"
+               CharacterSpacing="3"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               TranslationY="125"/>
+
+        <!-- Lade-Text unten (erscheint während Session-Prüfung) -->
+        <Label x:Name="LoadingLabel"
+               Text="Sitzung wird geprüft..."
+               Opacity="0"
+               TextColor="#33ffffff"
+               FontSize="12"
+               CharacterSpacing="1"
+               HorizontalOptions="Center"
+               VerticalOptions="End"
+               Margin="0,0,0,60"/>
+
+    </Grid>
+</ContentPage>

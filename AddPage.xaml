@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:models="clr-namespace:NBH.Resources.Models"
+    x:Class="NBH.AddPage"
+    Shell.NavBarIsVisible="False"
+    Padding="0"
+    x:DataType="viewModels:AddPageViewModel"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls">
+
+    <!-- HINTERGRUND -->
+
+    <!-- ============================================================
+         ÄUSSERES GRID: Inhalt (Row 0) + TabBar (Row 1)
+         ============================================================ -->
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- ========================================================
+             ROW 0: Gesamter Seiteninhalt
+             ======================================================== -->
+        <Grid Grid.Row="0">
+
+            <!-- Pull-to-Refresh Funktion -->
+            <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+                <!-- Gesamter Inhalt kann scrollen -->
+                <ScrollView>
+                    <StackLayout Spacing="0" Padding="0">
+
+                        <!-- Weißer Bereich mit Header und Inhalt -->
+                        <Frame CornerRadius="25"
+                               HasShadow="True"
+                               Margin="20,10"
+                               Padding="0"
+                               BorderColor="#e0e0e0"
+                               BackgroundColor="White"
+                               IsClippedToBounds="True">
+                            <StackLayout Spacing="0">
+
+                                <!-- Header Banner (Full Width within Frame) -->
+                                <Grid HeightRequest="120">
+                                    <Border StrokeThickness="0" Padding="0">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                                <GradientStop Color="#00897b" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.Shadow>
+                                            <Shadow Brush="Black" Opacity="0.2" Radius="10" Offset="0,4"/>
+                                        </Border.Shadow>
+                                        <VerticalStackLayout Spacing="0" HorizontalOptions="Center" VerticalOptions="Center">
+                                            <Label Text="CareCommunity"
+                                                   Style="{StaticResource BadgeStyle}"
+                                                   TextColor="#e4f8f5"
+                                                   CharacterSpacing="2"
+                                                   HorizontalOptions="Center"/>
+                                            <Label Text="Events"
+                                                   Style="{StaticResource TitleLargeStyle}"
+                                                   TextColor="White"
+                                                   HorizontalOptions="Center"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+
+                                    <!-- EVENT ERSTELLEN BUTTON (Overlay auf Header) -->
+                                    <Border x:Name="CreateEventBtn"
+                                            VerticalOptions="End"
+                                            HorizontalOptions="Center"
+                                            Margin="0,0,0,-25"
+                                            HeightRequest="50"
+                                            WidthRequest="220"
+                                            StrokeThickness="0"
+                                            Padding="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="25"/>
+                                        </Border.StrokeShape>
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#ffffff" Offset="0.0" />
+                                                <GradientStop Color="#f0f0f0" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.Shadow>
+                                            <Shadow Brush="#00d2a8" Opacity="0.5" Radius="15" Offset="0,0"/>
+                                        </Border.Shadow>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnCreateEventTapped"/>
+                                        </Border.GestureRecognizers>
+                                        <Label Text="+ EVENT ERSTELLEN"
+                                               TextColor="#00897b"
+                                               FontAttributes="Bold"
+                                               FontSize="14"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center">
+                                            <Label.Shadow>
+                                                <Shadow Brush="Gray" Opacity="0.2" Radius="2" Offset="1,1"/>
+                                            </Label.Shadow>
+                                        </Label>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Spacer für den überstehenden Button -->
+                                <BoxView HeightRequest="35" BackgroundColor="Transparent"/>
+                            </StackLayout>
+                        </Frame>
+
+                        <!-- Trennlinie -->
+                        <BoxView
+                            HeightRequest="1"
+                            BackgroundColor="{DynamicResource SeparatorColor}"
+                            HorizontalOptions="FillAndExpand" />
+
+                        <!-- Einzel-Filter (Kompakt & Linksbündig) -->
+                        <Border
+                            BackgroundColor="White"
+                            Stroke="#00897b"
+                            StrokeThickness="1.5"
+                            Padding="0"
+                            HeightRequest="40"
+                            HorizontalOptions="Start"
+                            Margin="20,0,20,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Picker
+                                ItemsSource="{Binding CombinedFilterOptions}"
+                                SelectedItem="{Binding SelectedCombinedFilter, Mode=TwoWay}"
+                                Title="Filtern"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Center"
+                                TextColor="#00695c"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                Margin="12,0" />
+                        </Border>
+
+                        <!-- ShimmerView während Ladevorgang -->
+                        <controls:ShimmerView
+                            IsShimmering="{Binding IsLoading}"
+                            IsVisible="{Binding IsLoading}"
+                            HeightRequest="600"
+                            HorizontalOptions="FillAndExpand" />
+
+                        <!-- CollectionView für vorhandene Einträge -->
+                        <CollectionView
+                            IsVisible="{Binding IsNotLoading}"
+                            ItemsSource="{Binding FilteredEntries}"
+                            SelectionMode="None"
+                            BackgroundColor="Transparent">
+                            
+                            <CollectionView.EmptyView>
+                                <controls:EmptyStateView
+                                    IconSource="no_entries_illustration.svg"
+                                    Title="Noch keine Einträge"
+                                    Description="In deiner Nähe gibt es noch keine Anfragen oder Angebote. Sei der Erste!"
+                                    ActionButtonText="Jetzt erstellen"
+                                    ActionCommand="{Binding NavigateToCreateCommand}"/>
+                            </CollectionView.EmptyView>
+
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:EntryItem">
+                                    <controls:EntryCard />
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <!-- Pagination-Buttons im Frame-Design -->
+                        <StackLayout Orientation="Vertical" Padding="10" Spacing="10" HorizontalOptions="Center">
+
+                            <!-- Anzeige aktuelle Seite -->
+                            <Label Text="{Binding PageDisplay}"
+                                   Style="{StaticResource BodyLargeStyle}"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Center"
+                                   TextColor="Black" />
+
+                                <Grid ColumnSpacing="20" RowSpacing="15">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Button: Zum Anfang -->
+                                    <Frame
+                                    CornerRadius="20"
+                                    HeightRequest="50"
+                                    WidthRequest="140"
+                                    Margin="5"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    HasShadow="True"
+                                    Padding="0"
+                                    Grid.Row="0" Grid.Column="0">
+                                        <Frame.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                                <GradientStop Color="#00897b" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Frame.Background>
+                                        <Label
+                                        Text="Zum Anfang"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        TextColor="White"
+                                        Style="{StaticResource BodyLargeStyle}"
+                                        FontAttributes="Bold" />
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnNavFrameTapped" CommandParameter="{Binding FirstPageCommand}" />
+                                        </Frame.GestureRecognizers>
+                                    </Frame>
+
+                                    <!-- Button: Zum Ende -->
+                                    <Frame
+                                    CornerRadius="20"
+                                    HeightRequest="50"
+                                    WidthRequest="140"
+                                    Margin="5"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    HasShadow="True"
+                                    Padding="0"
+                                    Grid.Row="0" Grid.Column="1">
+                                        <Frame.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                                <GradientStop Color="#00897b" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Frame.Background>
+                                        <Label
+                                        Text="Zum Ende"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        TextColor="White"
+                                        Style="{StaticResource BodyLargeStyle}"
+                                        FontAttributes="Bold" />
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnNavFrameTapped" CommandParameter="{Binding LastPageCommand}" />
+                                        </Frame.GestureRecognizers>
+                                    </Frame>
+
+                                    <!-- Button: Zurück -->
+                                    <Frame
+                                    CornerRadius="20"
+                                    HeightRequest="50"
+                                    WidthRequest="140"
+                                    Margin="5"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    HasShadow="True"
+                                    Padding="0"
+                                    Grid.Row="1" Grid.Column="0">
+                                        <Frame.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                                <GradientStop Color="#00897b" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Frame.Background>
+                                        <Label
+                                        Text="Zurück"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        TextColor="White"
+                                        Style="{StaticResource BodyLargeStyle}"
+                                        FontAttributes="Bold" />
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnNavFrameTapped" CommandParameter="{Binding PrevPageCommand}" />
+                                        </Frame.GestureRecognizers>
+                                    </Frame>
+
+                                    <!-- Button: Weiter -->
+                                    <Frame
+                                    CornerRadius="20"
+                                    HeightRequest="50"
+                                    WidthRequest="140"
+                                    Margin="5"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    HasShadow="True"
+                                    Padding="0"
+                                    Grid.Row="1" Grid.Column="1">
+                                        <Frame.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                                <GradientStop Color="#00897b" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Frame.Background>
+                                        <Label
+                                        Text="Weiter"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        TextColor="White"
+                                        Style="{StaticResource BodyLargeStyle}"
+                                        FontAttributes="Bold" />
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnNavFrameTapped" CommandParameter="{Binding NextPageCommand}" />
+                                        </Frame.GestureRecognizers>
+                                    </Frame>
+                            </Grid>
+                        </StackLayout>
+                    </StackLayout>
+                </ScrollView>
+            </RefreshView>
+
+            <!-- BellControl als Overlay unten rechts -->
+            <controls:BellControl
+                x:Name="MyBell"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="0,0,10,20" />
+
+        </Grid>
+        <!-- ========== ENDE ROW 0 ========== -->
+
+        <!-- ========================================================
+             ROW 1: CustomTabBar
+             ======================================================== -->
+        <controls:CustomTabBar
+            x:Name="MyTabBar"
+            Grid.Row="1"
+            SelectedIndex="2"/>
+
+    </Grid>
+    <!-- ========== ENDE ÄUSSERES GRID ========== -->
+
+</ContentPage>
+
+
+

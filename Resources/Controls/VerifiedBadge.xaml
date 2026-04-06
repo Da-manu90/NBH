@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NBH.Resources.Controls.VerifiedBadge">
+
+    <HorizontalStackLayout Spacing="4">
+        <Image Source="verified_check.png"
+               WidthRequest="14" HeightRequest="14"
+               VerticalOptions="Center"
+               IsVisible="{Binding IsVerified, Source={RelativeSource AncestorType={x:Type ContentView}}}"/>
+        <Label Text="Verifiziert"
+               FontSize="11"
+               FontAttributes="Bold"
+               TextColor="#00897b"
+               VerticalOptions="Center"
+               IsVisible="{Binding IsVerified, Source={RelativeSource AncestorType={x:Type ContentView}}}"/>
+    </HorizontalStackLayout>
+</ContentView>

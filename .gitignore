@@ -1,0 +1,70 @@
+# .gitignore für .NET MAUI (NBH Projekt)
+
+# Visual Studio
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET / MSBuild
+*.exe
+*.dll
+*.pdb
+*.log
+*.cache
+*.tmp
+.vs/
+.idea/
+.DS_Store
+
+# MAUI / Android / iOS
+Platforms/Android/obj/
+Platforms/Android/bin/
+Platforms/iOS/obj/
+Platforms/iOS/bin/
+Generated\ Files/
+_ActiveX/
+
+# Supabase / Environment Secrets
+.env
+*.env.local
+supabase/.temp/
+Supabase/supabase/.temp/
+supabase/functions/.env
+
+# Claude Code local settings
+.claude/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# User Settings / App Data
+NBH.csproj.user
+
+# Secrets & Credentials
+AppConfig.cs
+Platforms/Android/google-services.json
+Platforms/iOS/GoogleService-Info.plist
+
+# Supabase Edge Functions (enthalten projektspezifische Logik/Secrets)
+Supabase/supabase/functions/*/index.ts
+
+# IDE - Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.velocity.json
+
+# Backup/Zips (Da viele .zip Dateien im Ordner liegen)
+*.zip
+*.7z
+*.rar

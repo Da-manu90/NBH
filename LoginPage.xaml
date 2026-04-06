@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    LoginPage.xaml - Polished Version
+
+    Angepasst an das aktuelle LoginPageViewModel:
+    - Binding: Email
+    - Binding: Password
+    - Binding: ErrorMessage / IsErrorVisible
+    - Commands: SignInCommand, NavigateToRegisterCommand, SocialLoginCommand
+
+    Verbesserungen gegenueber dem Original:
+    1. Logo, Form und Buttons haben eigene x:Name fuer PageEntranceAsync-Animation
+    2. Entry-Felder leuchten beim Fokus auf (Border-Stroke-Wechsel via Code-Behind)
+    3. Buttons federn beim Tippen ein (AnimationHelper.ButtonPressAsync)
+    4. Fehleranzeige als sanft einblendender Banner statt starres Label
+    5. Moderneres Layout mit besseren Abstaenden und Schatten
+-->
+<ContentPage
+    x:Class="NBH.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls"
+    x:DataType="viewModels:LoginPageViewModel"
+    Shell.NavBarIsVisible="False"
+    Padding="0">
+
+    <!-- Hintergrund wird ueber den globalen ContentPage-Style gesteuert (Styles.xaml) -->
+
+    <Grid>
+        <ScrollView>
+        <VerticalStackLayout Padding="28" Spacing="20">
+
+            <!-- ============================================================
+                 LOGO-BEREICH - animiert per PageEntranceAsync
+                 ============================================================ -->
+            <StackLayout
+                x:Name="LogoSection"
+                HorizontalOptions="Center"
+                Margin="0,25,0,0"
+                Opacity="0">
+
+                <Frame
+                    Padding="0"
+                    CornerRadius="100"
+                    HasShadow="True"
+                    WidthRequest="150"
+                    HeightRequest="150"
+                    BackgroundColor="Transparent"
+                    HorizontalOptions="Center">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="0.4" Radius="30" Offset="0,8"/>
+                    </Frame.Shadow>
+                    <Image
+                        Source="logo.png"
+                        WidthRequest="150"
+                        HeightRequest="150"
+                        Aspect="AspectFill"/>
+                </Frame>
+
+                <Label
+                    Text="Willkommen zur&#xFC;ck!"
+                    Style="{StaticResource DisplayStyle}"
+                    HorizontalOptions="Center"
+                    Margin="0,12,0,2"/>
+
+                <Label
+                    Text="Bitte melde dich an."
+                    Style="{StaticResource BodyLargeStyle}"
+                    TextColor="{AppThemeBinding Light={StaticResource TextSecondaryLight}, Dark={StaticResource TextSecondaryDark}}"
+                    HorizontalOptions="Center"/>
+            </StackLayout>
+
+            <!-- ============================================================
+                 FORMULAR-BEREICH - animiert per PageEntranceAsync
+                 ============================================================ -->
+            <VerticalStackLayout
+                x:Name="FormSection"
+                Spacing="14"
+                Opacity="0">
+
+                <!-- E-Mail -->
+                <Label Text="E-Mail" Style="{StaticResource BodyStyle}" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource AnthrazitBase}, Dark={StaticResource TextSecondaryDark}}"/>
+
+                <Border
+                    x:Name="EmailBorder"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
+                    Stroke="{AppThemeBinding Light=#DDDDDD, Dark=#4e4e4e}"
+                    StrokeThickness="2">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,3"/>
+                    </Border.Shadow>
+                    <Entry
+                        x:Name="UsernameEntry"
+                        Text="{Binding Email}"
+                        Placeholder="deine@email.de"
+                        Keyboard="Email"
+                        BackgroundColor="Transparent"
+                        FontSize="16"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimaryLight}, Dark={StaticResource TextPrimaryDark}}"
+                        PlaceholderColor="{AppThemeBinding Light=#BBBBBB, Dark=#666666}"
+                        Margin="12,8"
+                        ReturnType="Next"
+                        Focused="OnEmailFocused"
+                        Unfocused="OnEmailUnfocused"/>
+                </Border>
+
+                <!-- Passwort -->
+                <Label Text="Passwort" Style="{StaticResource BodyStyle}" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource AnthrazitBase}, Dark={StaticResource TextSecondaryDark}}"/>
+
+                <Border
+                    x:Name="PasswordBorder"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
+                    Stroke="{AppThemeBinding Light=#DDDDDD, Dark=#4e4e4e}"
+                    StrokeThickness="2">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,3"/>
+                    </Border.Shadow>
+                    <Grid>
+                        <Entry
+                            x:Name="PasswordEntry"
+                            Text="{Binding Password}"
+                            Placeholder="Passwort"
+                            IsPassword="True"
+                            BackgroundColor="Transparent"
+                            FontSize="16"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimaryLight}, Dark={StaticResource TextPrimaryDark}}"
+                            PlaceholderColor="{AppThemeBinding Light=#BBBBBB, Dark=#666666}"
+                            Margin="12,8"
+                            ReturnType="Go"
+                            Focused="OnPasswordFocused"
+                            Unfocused="OnPasswordUnfocused"/>
+                        <ImageButton
+                            x:Name="EyeButton"
+                            Source="eye.png"
+                            WidthRequest="22"
+                            HeightRequest="22"
+                            BackgroundColor="Transparent"
+                            HorizontalOptions="End"
+                            VerticalOptions="Center"
+                            Margin="0,0,14,0"
+                            Clicked="TogglePasswordVisibility"/>
+                    </Grid>
+                </Border>
+
+                <!-- Angemeldet bleiben -->
+                <StackLayout Orientation="Horizontal" Spacing="0">
+                    <CheckBox x:Name="RememberMeCheckBox"/>
+                    <Label Text="Angemeldet bleiben" Style="{StaticResource BodyStyle}" VerticalOptions="Center"/>
+                </StackLayout>
+
+                <!-- FEHLER-BANNER (animiert, statt hartes rotes Label) -->
+                <Border
+                    x:Name="ErrorBanner"
+                    IsVisible="False"
+                    Opacity="0"
+                    BackgroundColor="#FFF0F0"
+                    Stroke="#FFCCCC"
+                    StrokeThickness="1"
+                    Padding="12,10">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Label
+                        Text="{Binding ErrorMessage}"
+                        TextColor="{StaticResource ErrorColor}"
+                        Style="{StaticResource BodyStyle}"/>
+                </Border>
+
+            </VerticalStackLayout>
+
+            <!-- ============================================================
+                 BUTTONS - animiert per PageEntranceAsync
+                 ============================================================ -->
+            <VerticalStackLayout
+                x:Name="ButtonSection"
+                Spacing="12"
+                Opacity="0">
+
+                <!-- ANMELDEN-BUTTON mit Gradient + Shadow -->
+                <Border
+                    x:Name="LoginButton"
+                    HeightRequest="54"
+                    StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="27"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource AccentPrimary}" Opacity="0.5" Radius="16" Offset="0,6"/>
+                    </Border.Shadow>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="{StaticResource AccentBright}" Offset="0.0"/>
+                            <GradientStop Color="{StaticResource AccentPrimary}" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SignInCommand}"
+                            Tapped="OnLoginTapped"/>
+                    </Border.GestureRecognizers>
+                    <!-- Label und Spinner im Wechsel -->
+                    <Grid>
+                        <Label
+                            Text="Anmelden"
+                            TextColor="White"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            IsVisible="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}"/>
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            Color="White"
+                            WidthRequest="28"
+                            HeightRequest="28"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- REGISTRIEREN-BUTTON: Ghost-Stil -->
+                <Border
+                    x:Name="RegisterButton"
+                    HeightRequest="54"
+                    Stroke="{AppThemeBinding Light={StaticResource AnthrazitLight}, Dark=#5e5e5e}"
+                    StrokeThickness="1.5"
+                    BackgroundColor="Transparent">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="27"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding NavigateToRegisterCommand}"
+                            Tapped="OnRegisterTapped"/>
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="Noch kein Konto? Registrieren"
+                        TextColor="{AppThemeBinding Light={StaticResource AnthrazitBase}, Dark={StaticResource TextSecondaryDark}}"
+                        FontSize="16"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"/>
+                </Border>
+
+                <!-- DIVIDER -->
+                <Grid Margin="0,4">
+                    <BoxView HeightRequest="1"
+                             BackgroundColor="{AppThemeBinding Light=#DDDDDD, Dark=#4e4e4e}"
+                             VerticalOptions="Center"/>
+                    <Label
+                        Text="  oder  "
+                        FontSize="13"
+                        TextColor="{AppThemeBinding Light={StaticResource AnthrazitLight}, Dark={StaticResource TextMutedDark}}"
+                        BackgroundColor="{AppThemeBinding Light=#f5f5f5, Dark=#1a1a1a}"
+                        HorizontalOptions="Center"/>
+                </Grid>
+
+                <!-- APPLE LOGIN -->
+                <Border
+                    x:Name="AppleButton"
+                    HeightRequest="54"
+                    BackgroundColor="Black"
+                    StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="27"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.3" Radius="12" Offset="0,4"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SocialLoginCommand}"
+                            CommandParameter="apple"
+                            Tapped="OnAppleTapped"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Image Source="apple_logo.png" HeightRequest="20" WidthRequest="20"/>
+                        <Label
+                            Text="Mit Apple anmelden"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- GOOGLE LOGIN -->
+                <Border
+                    x:Name="GoogleButton"
+                    HeightRequest="54"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource SurfaceDark}}"
+                    Stroke="{AppThemeBinding Light=#DDDDDD, Dark=#4e4e4e}"
+                    StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="27"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,4"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SocialLoginCommand}"
+                            CommandParameter="google"
+                            Tapped="OnGoogleTapped"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Image Source="google.png" HeightRequest="22" WidthRequest="22"/>
+                        <Label
+                            Text="Mit Google anmelden"
+                            TextColor="{AppThemeBinding Light={StaticResource AnthrazitBase}, Dark={StaticResource TextPrimaryDark}}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <!-- FACEBOOK LOGIN -->
+                <Border
+                    x:Name="FacebookButton"
+                    HeightRequest="54"
+                    BackgroundColor="#1877F2"
+                    StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="27"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#1877F2" Opacity="0.3" Radius="12" Offset="0,4"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer
+                            Command="{Binding SocialLoginCommand}"
+                            CommandParameter="facebook"
+                            Tapped="OnFacebookTapped"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Image Source="facebook.png" HeightRequest="22" WidthRequest="22"/>
+                        <Label
+                            Text="Mit Facebook anmelden"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Loading Overlay - erscheint beim Einloggen -->
+        <controls:LoadingOverlay x:Name="LoginLoadingOverlay"
+                                 Grid.RowSpan="99"
+                                 LoadingText="Anmeldung l&#xE4;uft..."
+                                 IsVisible="{Binding IsBusy}"/>
+    </Grid>
+</ContentPage>

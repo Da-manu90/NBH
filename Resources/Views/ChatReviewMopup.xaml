@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mopup:PopupPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:mopup="clr-namespace:Mopups.Pages;assembly=Mopups"
+    x:Class="NBH.Resources.Views.ChatReviewMopup"
+    BackgroundColor="#80000000"
+    InputTransparent="False">
+
+    <Border Padding="20"
+            Stroke="White"
+            StrokeThickness="2"
+            HorizontalOptions="Center"
+            VerticalOptions="Center">
+
+        <!-- Runde Ecken mit StrokeShape -->
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="30" />
+        </Border.StrokeShape>
+
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#35c4d8" Offset="0.0" />
+                <GradientStop Color="#5a9ca5" Offset="1.0" />
+            </LinearGradientBrush>
+        </Border.Background>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Schließen-Button (oben rechts) -->
+            <Button Text="Schließen"
+                    Margin="0,0,5,20"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#a6e4d9"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Start"
+                    Clicked="OnCloseButtonClicked">
+                <Button.Shadow>
+                    <Shadow Brush="Black" 
+                            Opacity="0.5" 
+                            Radius="5" 
+                            Offset="2,2" />
+                </Button.Shadow>
+            </Button>
+
+            <StackLayout Grid.Row="1" Spacing="10">
+                <!-- Überschrift -->
+                <Label Text="Chat-Bewertung"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" 
+                       Margin="0,0,0,20"/>
+
+                <!-- Frage 1 -->
+                <Label x:Name="Question1Label" Text="Frage 1" FontSize="20" />
+                <!-- Fünf Sterne für "Friendliness" -->
+                <HorizontalStackLayout x:Name="FriendlinessStars" Spacing="5">
+                    <ImageButton x:Name="FriendlinessStar1" Source="star_empty32.png" Clicked="OnFriendlinessStarClicked" CommandParameter="1"/>
+                    <ImageButton x:Name="FriendlinessStar2" Source="star_empty32.png" Clicked="OnFriendlinessStarClicked" CommandParameter="2"/>
+                    <ImageButton x:Name="FriendlinessStar3" Source="star_empty32.png" Clicked="OnFriendlinessStarClicked" CommandParameter="3"/>
+                    <ImageButton x:Name="FriendlinessStar4" Source="star_empty32.png" Clicked="OnFriendlinessStarClicked" CommandParameter="4"/>
+                    <ImageButton x:Name="FriendlinessStar5" Source="star_empty32.png" Clicked="OnFriendlinessStarClicked" CommandParameter="5"/>
+                </HorizontalStackLayout>
+
+                <!-- Frage 2 -->
+                <Label x:Name="Question2Label" Text="Frage 2" FontSize="20" />
+                <!-- Fünf Sterne für "ResponseTime" -->
+                <HorizontalStackLayout x:Name="ResponseTimeStars" Spacing="5">
+                    <ImageButton x:Name="ResponseTimeStar1" Source="star_empty32.png" Clicked="OnResponseTimeStarClicked" CommandParameter="1"/>
+                    <ImageButton x:Name="ResponseTimeStar2" Source="star_empty32.png" Clicked="OnResponseTimeStarClicked" CommandParameter="2"/>
+                    <ImageButton x:Name="ResponseTimeStar3" Source="star_empty32.png" Clicked="OnResponseTimeStarClicked" CommandParameter="3"/>
+                    <ImageButton x:Name="ResponseTimeStar4" Source="star_empty32.png" Clicked="OnResponseTimeStarClicked" CommandParameter="4"/>
+                    <ImageButton x:Name="ResponseTimeStar5" Source="star_empty32.png" Clicked="OnResponseTimeStarClicked" CommandParameter="5"/>
+                </HorizontalStackLayout>
+
+                <!-- Frage 3 -->
+                <Label x:Name="Question3Label" Text="Frage 3" FontSize="20" />
+                <!-- Fünf Sterne für "Helpfulness" -->
+                <HorizontalStackLayout x:Name="HelpfulnessStars" Spacing="5" Margin="0,0,0,20">
+                    <ImageButton x:Name="HelpfulnessStar1" Source="star_empty32.png" Clicked="OnHelpfulnessStarClicked" CommandParameter="1"/>
+                    <ImageButton x:Name="HelpfulnessStar2" Source="star_empty32.png" Clicked="OnHelpfulnessStarClicked" CommandParameter="2"/>
+                    <ImageButton x:Name="HelpfulnessStar3" Source="star_empty32.png" Clicked="OnHelpfulnessStarClicked" CommandParameter="3"/>
+                    <ImageButton x:Name="HelpfulnessStar4" Source="star_empty32.png" Clicked="OnHelpfulnessStarClicked" CommandParameter="4"/>
+                    <ImageButton x:Name="HelpfulnessStar5" Source="star_empty32.png" Clicked="OnHelpfulnessStarClicked" CommandParameter="5"/>
+                </HorizontalStackLayout>
+
+                <!-- Abschicken-Button -->
+                <Button Text="Abschicken"
+                        HorizontalOptions="Center"
+                        Margin="0,0,5,10"
+                        BackgroundColor="#a6e4d9"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        Clicked="OnSubmitButtonClicked">
+                    <Button.Shadow>
+                        <Shadow Brush="Black" 
+                                Opacity="0.5" 
+                                Radius="5" 
+                                Offset="2,2" />
+                    </Button.Shadow>
+                </Button>
+            </StackLayout>
+        </Grid>
+    </Border>
+</mopup:PopupPage>

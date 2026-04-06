@@ -1,0 +1,221 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="NBH.RatingPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:NBH"
+    Title="Bewertungen"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls">
+
+    <!-- HINTERGRUND -->
+    <ContentPage.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#DFF3F4" Offset="0.0" />
+            <GradientStop Color="#a0e5e8" Offset="1.0" />
+        </LinearGradientBrush>
+    </ContentPage.Background>
+
+    <Grid>
+
+
+        <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- (1) Profilbild + Username -->
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Grid HeightRequest="130"
+                      WidthRequest="130"
+                      HorizontalOptions="Center">
+                    <Border Stroke="Black"
+                            StrokeThickness="3"
+                            WidthRequest="130"
+                            HeightRequest="130"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="65" />
+                        </Border.StrokeShape>
+                        <Image Source="{Binding ProfileImageUrl}"
+                               Aspect="AspectFill"
+                               HeightRequest="130"
+                               WidthRequest="130">
+                            <Image.Clip>
+                                <EllipseGeometry Center="65,65" RadiusX="65" RadiusY="65" />
+                            </Image.Clip>
+                        </Image>
+                    </Border>
+                </Grid>
+
+                <Label Text="{Binding Username}"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="Black"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <!-- Trenner -->
+            <BoxView HeightRequest="1" Color="LightGray" />
+
+            <!-- (2) CHAT-BEWERTUNG -->
+            <Label Text="CHAT BEWERTUNG:"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="Black" />
+
+            <!-- Falls ChatRating = 0 => zeige Label -->
+            <Label Text="Keine Bewertungen"
+                   TextColor="Gray"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding HasChatRating, Converter={StaticResource InverseBooleanConverter}}" />
+
+            <Border Padding="10" IsVisible="{Binding HasChatRating}">
+    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+    <Border.Stroke><SolidColorBrush Color="Black"/></Border.Stroke>
+    <Border.Background><SolidColorBrush Color="{AppThemeBinding Light=White, Dark=#1e1e1e}"/></Border.Background>
+    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,Auto" Padding="5" RowSpacing="10" ColumnSpacing="10">
+        <Label Grid.Row="0" Grid.Column="0" Text="Hilfsbereitschaft:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="0" Grid.Column="1" Rating="{Binding ChatHelpfulnessAverage}" IsInteractive="False" HeightRequest="32"/>
+        
+        <Label Grid.Row="1" Grid.Column="0" Text="Freundlichkeit:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="1" Grid.Column="1" Rating="{Binding ChatFriendlinessAverage}" IsInteractive="False" HeightRequest="32"/>
+        
+        <Label Grid.Row="2" Grid.Column="0" Text="Antwortzeit:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="2" Grid.Column="1" Rating="{Binding ChatResponseTimeAverage}" IsInteractive="False" HeightRequest="32"/>
+    </Grid>
+</Border>
+
+            <!-- Trenner -->
+            <BoxView HeightRequest="1" Color="LightGray" />
+
+            <!-- (3) EVENT BEWERTUNG -->
+            <Label Text="EVENT BEWERTUNG:"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+                   
+
+            <!-- Keine Bewertungen, wenn HasEventRating=false -->
+            <Label Text="Keine Bewertungen"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding HasEventRating, Converter={StaticResource InverseBooleanConverter}}" />
+
+            <Border Padding="10" IsVisible="{Binding HasEventRating}">
+    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+    <Border.Stroke><SolidColorBrush Color="Black"/></Border.Stroke>
+    <Border.Background><SolidColorBrush Color="{AppThemeBinding Light=White, Dark=#1e1e1e}"/></Border.Background>
+    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,Auto" Padding="5" RowSpacing="10" ColumnSpacing="10">
+        <Label Grid.Row="0" Grid.Column="0" Text="Freundlichkeit:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="0" Grid.Column="1" Rating="{Binding EventFriendlinessAverage}" IsInteractive="False" HeightRequest="32"/>
+        
+        <Label Grid.Row="1" Grid.Column="0" Text="Beschreibung&#x0a;des Events:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" LineBreakMode="WordWrap" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="1" Grid.Column="1" Rating="{Binding EventDescriptionAccuracyAverage}" IsInteractive="False" HeightRequest="32"/>
+        
+        <Label Grid.Row="2" Grid.Column="0" Text="Zuverlässigkeit:" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center"/>
+        <controls:StarRatingControl Grid.Row="2" Grid.Column="1" Rating="{Binding EventReliabilityAverage}" IsInteractive="False" HeightRequest="32"/>
+    </Grid>
+</Border>
+
+            <!-- (4) Text-Bewertungen (CollectionView) -->
+            <Label Text="Text-Bewertungen"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   
+                   HorizontalOptions="Center" />
+
+            <CollectionView x:Name="EventCommentCollectionView"
+                            ItemsSource="{Binding EventComments}"
+                            VerticalOptions="FillAndExpand">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="Gray" StrokeThickness="1" Margin="0,0,0,10" Padding="0">
+    <Border.StrokeShape><RoundRectangle CornerRadius="30"/></Border.StrokeShape>
+    <Border.Background><SolidColorBrush Color="Transparent"/></Border.Background>
+                            <VerticalStackLayout Spacing="0">
+
+                                <!-- Oberer Balken -->
+                                <Border Stroke="Black" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="30,30,0,0" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding HeaderText}"
+                                           Padding="10"
+                                           FontAttributes="Bold"
+                                           FontSize="16" 
+                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                </Border>
+
+                                <!-- Kommentar -->
+                                <StackLayout Padding="10">
+                                    <Label Text="{Binding Comment}"
+                                           FontSize="18"
+                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                </StackLayout>
+
+                                <!-- Unterer Balken -->
+                                <Border Stroke="Black" StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="0,0,30,30" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding EventTitle, StringFormat='Zum Event: {0}'}"
+                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                           Padding="10"
+                                           FontSize="16"
+                                           FontAttributes="Italic" />
+                                </Border>
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Paginierung (Vor/ZurÃ¼ck) -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Button Text="Â« ZurÃ¼ck"
+                        Command="{Binding LoadPreviousCommentsCommand}"
+                        IsVisible="{Binding CanGoBackInComments}" />
+                <Button Text="Weiter Â»"
+                        Command="{Binding LoadNextCommentsCommand}"
+                        IsVisible="{Binding CanGoForwardInComments}" />
+            </HorizontalStackLayout>
+
+            <!-- Ganz unten in RatingPage.xaml: z. B. -->
+            <StackLayout Orientation="Vertical"
+             Spacing="15"
+             Padding="10"
+             HorizontalOptions="Center"
+             Margin="0,20,0,20">
+                <Border StrokeShape="RoundRectangle 20"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Padding="2"
+            BackgroundColor="White">
+                    <Border.Shadow>
+                        <Shadow Brush="Black"
+                    Opacity="0.3"
+                    Radius="5"
+                    Offset="0,5" />
+                    </Border.Shadow>
+                    <Button x:Name="BackToProfileButton"
+                Text="&lt; ZurÃ¼ck"
+                BackgroundColor="#00d3b2"
+                TextColor="White"
+                CornerRadius="20"
+                FontAttributes="Bold"
+                WidthRequest="150"
+                HeightRequest="50"
+                HorizontalOptions="Center"
+                Clicked="OnBackToProfileClicked" />
+                </Border>
+            </StackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+        <controls:BellControl
+            x:Name="MyBell"
+            HorizontalOptions="End"
+            VerticalOptions="End"
+            Margin="0,0,10,30" />
+    </Grid>
+</ContentPage>
+

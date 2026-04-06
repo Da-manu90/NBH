@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<mopup:PopupPage
+    x:Class="NBH.Resources.Views.NotificationPopup"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:mopup="clr-namespace:Mopups.Pages;assembly=Mopups"
+    xmlns:viewmodels="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:models="clr-namespace:NBH.Resources.Models"
+    BackgroundColor="#80000000"
+    HasSystemPadding="True"
+    CloseWhenBackgroundIsClicked="True">
+
+    <Frame CornerRadius="30"
+           Padding="5"
+           BorderColor="White"
+           BackgroundColor="#80d4ff"
+           HasShadow="False"
+           HorizontalOptions="Center"
+           VerticalOptions="Center"
+           WidthRequest="350"
+           MaximumHeightRequest="600">
+
+        <VerticalStackLayout Spacing="10">
+
+            <!-- Überschrift -->
+            <Frame CornerRadius="30" Padding="0" BorderColor="White" HasShadow="False">
+                <Frame.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#9cd9ff" Offset="0.0" />
+                        <GradientStop Color="#006eb1" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Frame.Background>
+
+                <Grid HeightRequest="110">
+                    <Image Source="bell.png"
+                           WidthRequest="100"
+                           HeightRequest="100"
+                           Opacity="0.8"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           TranslationX="-50"/>
+
+                    <Label Text="Benachrichtigungen"
+                           TextColor="White"
+                           FontAttributes="Bold"
+                           FontSize="22"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+
+            <ScrollView VerticalOptions="FillAndExpand">
+                <CollectionView x:Name="NotificationCollectionView"
+                                ItemsSource="{Binding Notifications}"
+                                EmptyView="Keine Benachrichtigungen vorhanden.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:NotificationModel">
+                            <Frame CornerRadius="15"
+                                   BackgroundColor="#e6f7ff"
+                                   Padding="10"
+                                   HeightRequest="75"
+                                   Margin="5"
+                                   HasShadow="True">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Message}"
+                                           Grid.Column="0"
+                                           FontSize="15"
+                                           TextColor="Black"
+                                           VerticalOptions="Center"/>
+
+                                    <Frame Grid.Column="1"
+                                           Padding="5"
+                                           BackgroundColor="Transparent"
+                                           CornerRadius="15"
+                                           HorizontalOptions="End"
+                                           IsVisible="{Binding HasRatingButton}">
+                                        <Frame.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#9cd9ff" Offset="0.0" />
+                                                <GradientStop Color="#006eb1" Offset="1.0" />
+                                            </LinearGradientBrush>
+                                        </Frame.Background>
+                                        <Label Text="Bewerten"
+                                               FontSize="12"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                        <Frame.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding BindingContext.RatingCommand, Source={x:Reference NotificationCollectionView}}"
+                                                CommandParameter="{Binding .}" />
+                                        </Frame.GestureRecognizers>
+                                    </Frame>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </ScrollView>
+
+            <Frame CornerRadius="15"
+                   Padding="10"
+                   Margin="5"
+                   HasShadow="True"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center">
+
+            <Frame.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#9cd9ff" Offset="0.0" />
+                        <GradientStop Color="#006eb1" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Frame.Background>
+
+                <Label Text="Schließen"
+           FontSize="15"
+           TextColor="White"
+           HorizontalOptions="Center"
+           VerticalOptions="Center"/>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseButtonTapped" />
+                </Frame.GestureRecognizers>
+            </Frame>
+
+        </VerticalStackLayout>
+    </Frame>
+</mopup:PopupPage>

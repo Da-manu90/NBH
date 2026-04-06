@@ -1,0 +1,85 @@
+// file: notify_partner_assigned.ts
+import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+// In Supabase, ENV-Vars: SUPABASE_URL, SUPABASE_ANON_KEY, ...
+// Oder du gibst sie selbst an:
+const supabase = createClient(
+  Deno.env.get("https://entpyczncbnavvudfgrb.supabase.co")!,
+  Deno.env.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVudHB5Y3puY2JuYXZ2dWRmZ3JiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDgwNzI5MCwiZXhwIjoyMDUwMzgzMjkwfQ.T1rgjwFx-9Wb8EsbFVpQ04adLzqcmuxBrw3tfvi-tyg")!
+);
+
+// OneSignal:
+const ONESIGNAL_APP_ID = "6f7988be-911b-4802-80d6-73154afbb487";
+const ONESIGNAL_REST_API_KEY = "os_v2_app_n54yrpurdneafagwomkuv65uq4bvswwfksfeuqefmrd767gt2lq76e6esltzarp6hgspuca35vot5gul5mxrmdam44pxt2xf77nk3sq";
+
+serve(async (req) => {
+  try {
+    // parse body => { userId, partnerId, entryId }
+    const { userId, partnerId, entryId } = await req.json();
+
+    // 1) PartnerName ermitteln:
+    //    In users haben wir 'username'. => SELECT username FROM users WHERE id = partnerId
+    const { data: partnerUser, error: partnerError } = await supabase
+      .from("users")
+      .select("username")
+      .eq("id", partnerId)
+      .single();
+    if (partnerError) throw partnerError;
+
+    const partnerName = partnerUser?.username ?? "Ein Partner";
+
+    // 2) Ersteller-PlayerId / ExternalUserId aus DB?
+    //    Du musst wissen, wie du den user identifizierst in OneSignal.
+    //    a) Du hast 'player_id' in user row => e.g. .eq("id", userId).select("player_id") ...
+    //    b) Oder du nutzt "include_external_user_ids" => userId
+
+    // Beispiel: Hole 'player_id' aus users
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("player_id")
+      .eq("id", userId)
+      .single();
+    if (userError) throw userError;
+
+    if (!user?.player_id) {
+      return new Response("No player_id for user => can't send push", { status: 200 });
+    }
+
+    // 3) Baue JSON für OneSignal
+    const body = {
+      app_id: ONESIGNAL_APP_ID,
+      include_player_ids: [ user.player_id ], // falls du 'player_id' hast
+      // Oder: include_external_user_ids: [ userId ], wenn du externId nutzt
+
+      headings: { "en": `${partnerName} hat Ihr Event angenommen.` },
+      contents: { "en": "Bestätigen Sie jetzt, um das Event zu starten." },
+
+      data: {
+        entryId: entryId
+      },
+
+      // optional Deep Link
+      url: `nbh://detailpage?entryId=${entryId}`
+    };
+
+    const resp = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${ONESIGNAL_REST_API_KEY}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      return new Response(`OneSignal error: ${errorText}`, { status: 400 });
+    }
+
+    return new Response("Push sent successfully!", { status: 200 });
+
+  } catch (err) {
+    return new Response(`Edge Function error => ${err.message}`, { status: 500 });
+  }
+});

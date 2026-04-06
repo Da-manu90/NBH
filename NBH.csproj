@@ -1,0 +1,224 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- ✅ FIX #1: TargetFrameworks MIT Conditions wie im Standard-Template -->
+		<TargetFrameworks>net10.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+
+		<!-- ✅ FIX #2: OutputType hinzugefügt -->
+		<OutputType>Exe</OutputType>
+		
+		<RootNamespace>NBH</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<ApplicationTitle>CareCommunity</ApplicationTitle>
+		<ApplicationId>com.companyname.nbh</ApplicationId>
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+		<WindowsPackageType>None</WindowsPackageType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		
+		<!-- ✅ FIX #3: ValidateXcodeVersion ENTFERNT (Standard = true) -->
+		
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+
+	<!-- ✅ FIX #4: iOS Debug - MtouchUseLlvm ENTFERNT (war True, muss False/weg sein) -->
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-ios|AnyCPU'">
+		<MtouchLink>None</MtouchLink>
+	</PropertyGroup>
+
+	<!-- iOS Release - hier ist LLVM ok -->
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-ios|AnyCPU'">
+		<PublishTrimmed>true</PublishTrimmed>
+		<RunAOTCompilation>true</RunAOTCompilation>
+		<MtouchUseLlvm>true</MtouchUseLlvm>
+		<RuntimeIdentifier>ios-arm64</RuntimeIdentifier>
+	</PropertyGroup>
+
+	<!-- iOS Codesigning -->
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+		<CodesignKey>Apple Development</CodesignKey>
+		<CodesignProvision></CodesignProvision>
+	</PropertyGroup>
+
+	<!-- Test Platform Excludes für iOS -->
+	<ItemGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+		<PackageReference Update="Microsoft.NET.Test.Sdk" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.TestHost" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.ObjectModel" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.VisualStudio.TestPlatform.Common" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.CommunicationUtilities" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.CrossPlatEngine" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.Utilities" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.PlatformAbstractions" ExcludeAssets="all" />
+		<PackageReference Update="Microsoft.TestPlatform.CoreUtilities" ExcludeAssets="all" />
+	</ItemGroup>
+
+	<Target Name="RemoveTestPlatformAssemblies" AfterTargets="ResolveAssemblyReferences">
+		<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+			<ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'Microsoft.TestPlatform.ObjectModel'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.TestHost'&#xA;              OR '%(FileName)' == 'Microsoft.VisualStudio.TestPlatform.Common'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.CommunicationUtilities'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.CrossPlatEngine'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.Utilities'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.PlatformAbstractions'&#xA;              OR '%(FileName)' == 'Microsoft.TestPlatform.CoreUtilities'&#xA;              OR '%(FileName)' == 'testhost'" />
+		</ItemGroup>
+	</Target>
+
+	<!-- Android Settings -->
+	<PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+		<PublishTrimmed>false</PublishTrimmed>
+		<RunAOTCompilation>false</RunAOTCompilation>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<AndroidFixManifests>false</AndroidFixManifests>
+		<AndroidEnableMultiDex>true</AndroidEnableMultiDex>
+		<AndroidDexTool>d8</AndroidDexTool>
+		<AndroidJavaMaxHeapSize>1G</AndroidJavaMaxHeapSize>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-android|AnyCPU'">
+		<AndroidUseAapt2>True</AndroidUseAapt2>
+		<AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<GoogleServicesJson Include="Platforms\Android\google-services.json" />
+	</ItemGroup>
+
+	<!-- Fonts -->
+	<ItemGroup>
+		<MauiFont Include="Resources\Fonts\OpenSans-Regular.ttf" />
+		<MauiFont Include="Resources\Fonts\OpenSans-Semibold.ttf" />
+		<MauiFont Include="Resources\Fonts\verdana.ttf" />
+		<MauiFont Include="Resources\Fonts\verdanab.ttf" Alias="VerdanaBold" />
+		<MauiFont Include="Resources\Fonts\verdanaz.ttf" />
+		<MauiFont Include="Resources\Fonts\verdanai.ttf" />
+	</ItemGroup>
+
+	<!-- Images -->
+	<ItemGroup>
+		<MauiImage Include="Resources\Images\add_icon.png" />
+		<MauiImage Include="Resources\Images\ap_beschreibung.png" />
+		<MauiImage Include="Resources\Images\ap_entry.png" />
+		<MauiImage Include="Resources\Images\ap_filter.png" />
+		<MauiImage Include="Resources\Images\ap_hinzufuegen.png" />
+		<MauiImage Include="Resources\Images\ap_kategorie.png" />
+		<MauiImage Include="Resources\Images\bell.png" />
+		<MauiImage Include="Resources\Images\bell_animation.gif" />
+		<MauiImage Include="Resources\Images\chatviewpage.png" />
+		<MauiImage Include="Resources\Images\chat_icon.png" />
+		<MauiImage Include="Resources\Images\dp_annehmen.png" />
+		<MauiImage Include="Resources\Images\dp_benutzerinformationen.png" />
+		<MauiImage Include="Resources\Images\dp_beschreibung.png" />
+		<MauiImage Include="Resources\Images\dp_bewertung_abgeben.png" />
+		<MauiImage Include="Resources\Images\dp_event_bestaetigen_ablehnen.png" />
+		<MauiImage Include="Resources\Images\dp_kontakt.png" />
+		<MauiImage Include="Resources\Images\dp_titel.png" />
+		<MauiImage Include="Resources\Images\dp_warten_auf_bestaetigung.png" />
+		<MauiImage Include="Resources\Images\dp_warten_auf_partner.png" />
+		<MauiImage Include="Resources\Images\dp_zurueck.png" />
+		<MauiImage Include="Resources\Images\fragezeichen.png" />
+		<MauiImage Include="Resources\Images\fragezeichen_2x.png" />
+		<MauiImage Include="Resources\Images\nachrichten.png" />
+		<MauiImage Include="Resources\Images\notification_read.png" />
+		<MauiImage Include="Resources\Images\notification_unread.png" />
+		<MauiImage Include="Resources\Images\obererbalken.png" />
+		<MauiImage Include="Resources\Images\profile_page1.png" />
+		<MauiImage Include="Resources\Images\profile_page2.png" />
+		<MauiImage Include="Resources\Images\profile_page3.png" />
+		<MauiImage Include="Resources\Images\profile_page4.png" />
+		<MauiImage Include="Resources\Images\profile_page5.png" />
+		<MauiImage Include="Resources\Images\profile_page6.png" />
+		<MauiImage Include="Resources\Images\profile_page7.png" />
+		<MauiImage Include="Resources\Images\profile_page8.png" />
+		<MauiImage Include="Resources\Images\add.png" />
+		<MauiImage Include="Resources\Images\add_2x.png" />
+		<MauiImage Include="Resources\Images\add_3x.png" />
+		<MauiImage Include="Resources\Images\apple_logo.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</MauiImage>
+		<MauiImage Include="Resources\Images\apple_logo_2x.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</MauiImage>
+		<MauiImage Include="Resources\Images\apple_logo_3x.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</MauiImage>
+		<MauiImage Include="Resources\Images\chat.png" />
+		<MauiImage Include="Resources\Images\chat_2x.png" />
+		<MauiImage Include="Resources\Images\chat_3x.png" />
+		<MauiImage Include="Resources\Images\map.png" />
+		<MauiImage Include="Resources\Images\map_2x.png" />
+		<MauiImage Include="Resources\Images\map_3x.png" />
+		<MauiImage Include="Resources\Images\profile.png" />
+		<MauiImage Include="Resources\Images\profile_2x.png" />
+		<MauiImage Include="Resources\Images\profile_3x.png" />
+		<MauiImage Include="Resources\Images\faq.png" />
+		<MauiImage Include="Resources\Images\faq_2x.png" />
+		<MauiImage Include="Resources\Images\faq_3x.png" />
+		<MauiImage Include="Resources\Images\eye.png" />
+		<MauiImage Include="Resources\Images\eye_2x.png" />
+		<MauiImage Include="Resources\Images\eye_3x.png" />
+		<MauiImage Include="Resources\Images\eyeoff.png" />
+		<MauiImage Include="Resources\Images\eyeoff_2x.png" />
+		<MauiImage Include="Resources\Images\eyeoff_3x.png" />
+		<MauiImage Include="Resources\Images\logo.png" />
+		<MauiImage Include="Resources\Images\logo_2x.png" />
+		<MauiImage Include="Resources\Images\logo_3x.png" />
+		<MauiImage Include="Resources\Images\profile_placeholder.png" />
+		<MauiImage Include="Resources\Images\profile_placeholder_2x.png" />
+		<MauiImage Include="Resources\Images\profile_placeholder_3x.png" />
+		<MauiImage Include="Resources\Images\ratingabschicken.png" />
+		<MauiImage Include="Resources\Images\ratingchatq1.png" />
+		<MauiImage Include="Resources\Images\ratingchatq2.png" />
+		<MauiImage Include="Resources\Images\ratingchatq3.png" />
+		<MauiImage Include="Resources\Images\ratingschliessen.png" />
+		<MauiImage Include="Resources\Images\star_empty.png" />
+		<MauiImage Include="Resources\Images\star_empty32.png" />
+		<MauiImage Include="Resources\Images\star_filled.png" />
+		<MauiImage Include="Resources\Images\star_filled32.png" />
+		<MauiImage Include="Resources\Images\fragezeichen_3x.png" />
+		<MauiImage Include="Resources\Images\textmessage.png" />
+	</ItemGroup>
+
+	<!-- NuGet Pakete -->
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="DotNetEnv" Version="3.1.1" />
+		<PackageReference Include="FFImageLoading.Maui" Version="1.3.2" />
+		<PackageReference Include="Indiko.Maui.Controls.Markdown" Version="1.5.0" />
+		<PackageReference Include="Microsoft.AppCenter" Version="5.0.7" />
+		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.7" />
+		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.7" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.7.0" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="10.0.41" />
+		<PackageReference Include="Microsoft.Maui.Maps" Version="10.0.41" />
+		<PackageReference Include="Mopups" Version="1.3.2" />
+		<PackageReference Include="NETStandard.Library" Version="2.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="OneSignalSDK.DotNet" Version="6.1.3" />
+		<PackageReference Include="Plugin.Maui.Audio" Version="3.1.0" />
+		<PackageReference Include="Shiny.Core" Version="4.0.1" />
+		<PackageReference Include="Shiny.Notifications" Version="4.0.1" />
+		<PackageReference Include="Shiny.Push" Version="4.0.1" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+		<PackageReference Include="Supabase" Version="1.0.0" />
+		<PackageReference Include="Supabase.Postgrest" Version="4.0.3" />
+		<PackageReference Include="Supabase.Realtime" Version="7.0.1" />
+		<PackageReference Include="Websocket.Client" Version="5.1.2" />
+		<PackageReference Include="Xamarin.Build.Download" Version="0.11.4" />
+	</ItemGroup>
+
+</Project>

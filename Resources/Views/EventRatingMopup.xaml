@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mopup:PopupPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:mopup="clr-namespace:Mopups.Pages;assembly=Mopups"
+    x:Class="NBH.Resources.Views.EventRatingMopup"
+    BackgroundColor="#80000000"
+    InputTransparent="False">
+
+    <!-- Border mit fester Breite, z. B. 300 px -->
+    <Border Padding="20"
+            Stroke="White"
+            StrokeThickness="2"
+            WidthRequest="300"
+            HorizontalOptions="Center"
+            VerticalOptions="Center">
+
+        <!-- Runde Ecken -->
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="30" />
+        </Border.StrokeShape>
+
+        <!-- Farbverlauf-Hintergrund -->
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#35c4d8" Offset="0.0" />
+                <GradientStop Color="#5a9ca5" Offset="1.0" />
+            </LinearGradientBrush>
+        </Border.Background>
+
+        <!-- Gitter für Button oben + restlicher Inhalt -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Schließen-Button (oben rechts) -->
+            <Button Text="Schließen"
+                    Margin="0,0,5,20"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#a6e4d9"
+                    HorizontalOptions="End"
+                    VerticalOptions="Start"
+                    Clicked="OnCloseButtonClicked">
+                <Button.Shadow>
+                    <Shadow Brush="Black"
+                            Opacity="0.5"
+                            Radius="5"
+                            Offset="2,2" />
+                </Button.Shadow>
+            </Button>
+
+            <!-- ScrollView für den Hauptinhalt -->
+            <ScrollView Grid.Row="1">
+                <StackLayout Spacing="10">
+
+                    <!-- Überschrift -->
+                    <Label Text="Event-Bewertung"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           Margin="0,0,0,20"/>
+
+                    <!-- Frage 1 -->
+                    <Label x:Name="Question1Label"
+                           Text="Frage 1"
+                           FontSize="20"
+                           LineBreakMode="WordWrap"
+                           WidthRequest="250"/>
+                    <!-- Sterne: event_friendliness -->
+                    <HorizontalStackLayout x:Name="EventFriendlinessStars" Spacing="5">
+                        <ImageButton x:Name="EventFriendlinessStar1" Source="star_empty32.png" 
+                                     Clicked="OnEventFriendlinessStarClicked" 
+                                     CommandParameter="1"/>
+                        <ImageButton x:Name="EventFriendlinessStar2" Source="star_empty32.png" 
+                                     Clicked="OnEventFriendlinessStarClicked"
+                                     CommandParameter="2"/>
+                        <ImageButton x:Name="EventFriendlinessStar3" Source="star_empty32.png" 
+                                     Clicked="OnEventFriendlinessStarClicked"
+                                     CommandParameter="3"/>
+                        <ImageButton x:Name="EventFriendlinessStar4" Source="star_empty32.png" 
+                                     Clicked="OnEventFriendlinessStarClicked"
+                                     CommandParameter="4"/>
+                        <ImageButton x:Name="EventFriendlinessStar5" Source="star_empty32.png" 
+                                     Clicked="OnEventFriendlinessStarClicked"
+                                     CommandParameter="5"/>
+                    </HorizontalStackLayout>
+
+                    <!-- Frage 2 -->
+                    <Label x:Name="Question2Label"
+                           Text="Frage 2"
+                           FontSize="20"
+                           LineBreakMode="WordWrap"
+                           WidthRequest="250"/>
+                    <!-- Sterne: description_accuracy -->
+                    <HorizontalStackLayout x:Name="DescriptionAccuracyStars" Spacing="5">
+                        <ImageButton x:Name="DescriptionAccuracyStar1" Source="star_empty32.png" 
+                                     Clicked="OnDescriptionAccuracyStarClicked"
+                                     CommandParameter="1"/>
+                        <ImageButton x:Name="DescriptionAccuracyStar2" Source="star_empty32.png" 
+                                     Clicked="OnDescriptionAccuracyStarClicked"
+                                     CommandParameter="2"/>
+                        <ImageButton x:Name="DescriptionAccuracyStar3" Source="star_empty32.png" 
+                                     Clicked="OnDescriptionAccuracyStarClicked"
+                                     CommandParameter="3"/>
+                        <ImageButton x:Name="DescriptionAccuracyStar4" Source="star_empty32.png" 
+                                     Clicked="OnDescriptionAccuracyStarClicked"
+                                     CommandParameter="4"/>
+                        <ImageButton x:Name="DescriptionAccuracyStar5" Source="star_empty32.png" 
+                                     Clicked="OnDescriptionAccuracyStarClicked"
+                                     CommandParameter="5"/>
+                    </HorizontalStackLayout>
+
+                    <!-- Frage 3 -->
+                    <Label x:Name="Question3Label"
+                           Text="Frage 3"
+                           FontSize="20"
+                           LineBreakMode="WordWrap"
+                           WidthRequest="250"/>
+                    <!-- Sterne: reliability -->
+                    <HorizontalStackLayout x:Name="ReliabilityStars" Spacing="5">
+                        <ImageButton x:Name="ReliabilityStar1" Source="star_empty32.png" 
+                                     Clicked="OnReliabilityStarClicked" 
+                                     CommandParameter="1"/>
+                        <ImageButton x:Name="ReliabilityStar2" Source="star_empty32.png" 
+                                     Clicked="OnReliabilityStarClicked"
+                                     CommandParameter="2"/>
+                        <ImageButton x:Name="ReliabilityStar3" Source="star_empty32.png" 
+                                     Clicked="OnReliabilityStarClicked"
+                                     CommandParameter="3"/>
+                        <ImageButton x:Name="ReliabilityStar4" Source="star_empty32.png" 
+                                     Clicked="OnReliabilityStarClicked"
+                                     CommandParameter="4"/>
+                        <ImageButton x:Name="ReliabilityStar5" Source="star_empty32.png" 
+                                     Clicked="OnReliabilityStarClicked"
+                                     CommandParameter="5"/>
+                    </HorizontalStackLayout>
+
+                    <!-- Kommentar-Editor -->
+                    <Label Text="Kommentar (optional):"
+                           FontSize="18"
+                           HorizontalOptions="Center"
+                           Margin="0,10,0,0" />
+                    <Frame CornerRadius="25"
+                           Padding="5"
+                           HasShadow="False"
+                           BackgroundColor="White"
+                           BorderColor="Gray"
+                           HorizontalOptions="Center">
+                        <Editor x:Name="CommentEditor"
+                                Placeholder="Kommentar eingeben..."
+                                PlaceholderColor="#9A9A9A"
+                                AutoSize="Disabled"
+                                HeightRequest="60"
+                                MaxLength="120"
+                                WidthRequest="150" />
+                    </Frame>
+
+                    <!-- Abschicken-Button -->
+                    <Button Text="Abschicken"
+                            HorizontalOptions="Center"
+                            Margin="0,20,0,10"
+                            BackgroundColor="#a6e4d9"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            Clicked="OnSubmitButtonClicked">
+                        <Button.Shadow>
+                            <Shadow Brush="Black"
+                                    Opacity="0.5"
+                                    Radius="5"
+                                    Offset="2,2" />
+                        </Button.Shadow>
+                    </Button>
+                </StackLayout>
+            </ScrollView>
+        </Grid>
+    </Border>
+</mopup:PopupPage>

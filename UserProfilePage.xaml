@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:local="clr-namespace:NBH"
+    x:Class="NBH.UserProfilePage"
+    x:DataType="viewModels:UserProfilePageViewModel"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls"
+    Shell.NavBarIsVisible="False">
+
+    <!-- Hintergrund wird über den globalen ContentPage-Style gesteuert (Styles.xaml) -->
+
+    <Grid>
+
+        <ScrollView>
+            <StackLayout Spacing="0" Padding="0">
+
+                <!-- ============================================
+                     HEADER BANNER Ã¢â‚¬â€œ 3-Farben Gradient
+                     Höhe ca. 1/5 des Viewports (kompakter)
+                     ============================================ -->
+                <Grid MinimumHeightRequest="210">
+                    <!-- Banner Hintergrund -->
+                    <Border StrokeThickness="0" Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="0,0,36,36"/>
+                        </Border.StrokeShape>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#87ffe9" Offset="0.0"/>
+                                <GradientStop Color="#00927f" Offset="0.5"/>
+                                <GradientStop Color="#87ffe9" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Shadow>
+                            <Shadow Brush="#006b5a" Opacity="0.7" Radius="30" Offset="0,12"/>
+                        </Border.Shadow>
+                    </Border>
+
+                    <!-- Profilbild + Name + Sterne Ã¢â‚¬â€œ kompakt im Banner -->
+                    <StackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="4"
+                                 Margin="0,4,0,8">
+
+                        <!-- PROFILBILD -->
+                        <Grid HeightRequest="90"
+                              WidthRequest="90"
+                              HorizontalOptions="Center">
+                            <Border Stroke="White"
+                                    StrokeThickness="3.5"
+                                    WidthRequest="90"
+                                    HeightRequest="90"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="45"/>
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="Black" Opacity="0.25" Radius="16" Offset="0,4"/>
+                                </Border.Shadow>
+                                <Image Source="{Binding ProfileImageUrl}"
+                                       Aspect="AspectFill"
+                                       HeightRequest="90"
+                                       WidthRequest="90">
+                                    <Image.Clip>
+                                        <EllipseGeometry Center="45,45" RadiusX="45" RadiusY="45"/>
+                                    </Image.Clip>
+                                </Image>
+                            </Border>
+                        </Grid>
+
+                        <!-- BENUTZERNAME -->
+                        <Label Text="{Binding Username}"
+                               Style="{StaticResource TitleLargeStyle}"
+                               HorizontalOptions="Center"
+                               TextColor="White"
+                               Margin="0,0,0,0"/>
+
+                        <!-- BEWERTUNG (Sterne + Anzahl) -->
+                        <StackLayout x:Name="RatingContainer"
+                                     Orientation="Vertical"
+                                     HorizontalOptions="Center"
+                                     Spacing="2"
+                                     Margin="0,0,0,0">
+                            
+                            <controls:StarRatingControl
+                                x:Name="ProfileStarRating"
+                                Rating="{Binding FinalRating}"
+                                RatingCount="{Binding FinalRatingCount}"
+                                IsInteractive="False"
+                                HeightRequest="30"
+                                HorizontalOptions="Center"/>
+
+                            <StackLayout.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToRatingPageCommand}"
+                                                      CommandParameter="{Binding CurrentUserId}"/>
+                            </StackLayout.GestureRecognizers>
+                        </StackLayout>
+
+                    </StackLayout>
+                </Grid>
+
+                <!-- ============================================
+                     ACTION BUTTONS: Kontakt + Bewertungen
+                     ~25px Abstand zum Header
+                     ============================================ -->
+                <Grid ColumnDefinitions="*,12,*"
+                      Padding="24,25,24,0">
+
+                    <!-- Kontakt-Button (Gradient obenÃ¢â€ â€™unten + weiße Kontur + Schatten) -->
+                    <Border Grid.Column="0"
+                            Stroke="White"
+                            StrokeThickness="2"
+                            HeightRequest="48"
+                            Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="24"/>
+                        </Border.StrokeShape>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#00d2a8" Offset="0.0"/>
+                                <GradientStop Color="#00897b" Offset="0.5"/>
+                                <GradientStop Color="#00695c" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Shadow>
+                            <Shadow Brush="#00695c" Opacity="0.5" Radius="16" Offset="0,6"/>
+                        </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding StartChatCommand}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="Kontakt"
+                               TextColor="White"
+                               Style="{StaticResource BodyLargeStyle}"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+
+                    <!-- Bewertungen-Button (Gradient untenÃ¢â€ â€™oben + weiße Kontur + Schatten) -->
+                    <Border Grid.Column="2"
+                            Stroke="White"
+                            StrokeThickness="2"
+                            HeightRequest="48"
+                            Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="24"/>
+                        </Border.StrokeShape>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                <GradientStop Color="#00d2a8" Offset="0.0"/>
+                                <GradientStop Color="#00897b" Offset="0.5"/>
+                                <GradientStop Color="#00695c" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Shadow>
+                            <Shadow Brush="#00695c" Opacity="0.5" Radius="16" Offset="0,6"/>
+                        </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding NavigateToRatingPageCommand}"
+                                                  CommandParameter="{Binding CurrentUserId}"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="Bewertungen"
+                               TextColor="White"
+                               Style="{StaticResource BodyLargeStyle}"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+                </Grid>
+
+                <!-- ============================================
+                     INFO-KARTE (Glasmorphismus)
+                     ~50px Abstand zu Buttons
+                     ============================================ -->
+                <Border BackgroundColor="#CCffffff"
+                        StrokeThickness="0"
+                        Padding="18,16"
+                        Margin="16,50,16,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.08" Radius="12" Offset="0,4"/>
+                    </Border.Shadow>
+
+                    <StackLayout Spacing="0">
+
+                        <!-- WOHNORT -->
+                        <StackLayout Orientation="Horizontal"
+                                     Spacing="12"
+                                     Padding="0,0,0,14">
+                            <Label Text=""
+                                   FontSize="18"
+                                   VerticalOptions="Center"/>
+                            <StackLayout VerticalOptions="Center" Spacing="2">
+                                <Label Text="Wohnort"
+                                       Style="{StaticResource BodySmallStyle}"
+                                       TextColor="#00897b"
+                                       FontAttributes="Bold"/>
+                                <Label Text="{Binding Wohnort}"
+                                       FontSize="15"
+                                       TextColor="#333"
+                                       LineBreakMode="WordWrap"/>
+                            </StackLayout>
+                        </StackLayout>
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="#2000897b"
+                                 Margin="0,0,0,14"/>
+
+                        <!-- ÜBER MICH -->
+                        <StackLayout Padding="0,0,0,14" Spacing="6">
+                            <Label Text="Über mich"
+                                   Style="{StaticResource BodySmallStyle}"
+                                   TextColor="#00897b"
+                                   FontAttributes="Bold"/>
+                            <Label Text="{Binding UeberMich}"
+                                   FontSize="15"
+                                   TextColor="#444"
+                                   LineBreakMode="WordWrap"/>
+                        </StackLayout>
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="#2000897b"
+                                 Margin="0,0,0,14"/>
+
+                        <!-- ABZEICHEN -->
+                        <StackLayout Padding="0,0,0,14" Spacing="8">
+                            <Label Text="Abzeichen"
+                                   Style="{StaticResource BodySmallStyle}"
+                                   TextColor="#00897b"
+                                   FontAttributes="Bold"/>
+                            <FlexLayout Wrap="Wrap"
+                                        Direction="Row"
+                                        AlignItems="Start"
+                                        JustifyContent="Start">
+                                <Border BackgroundColor="Transparent"
+                                        StrokeThickness="0"
+                                        Padding="8,4"
+                                        Margin="0,0,6,6">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10"/>
+                                    </Border.StrokeShape>
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#e0f7fa" Offset="0"/>
+                                            <GradientStop Color="#b2ebf2" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Label Text="Keine Abzeichen"
+                                           FontSize="12"
+                                           TextColor="#00695c"/>
+                                </Border>
+                            </FlexLayout>
+                        </StackLayout>
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="#2000897b"
+                                 Margin="0,0,0,14"/>
+
+                        <!-- QUALIFIKATIONEN -->
+                        <StackLayout Spacing="8">
+                            <Label Text="Qualifikationen"
+                                   Style="{StaticResource BodySmallStyle}"
+                                   TextColor="#00897b"
+                                   FontAttributes="Bold"/>
+                            <Label Text="{Binding Qualifikationen}"
+                                   FontSize="15"
+                                   TextColor="#444"
+                                   LineBreakMode="WordWrap"/>
+                        </StackLayout>
+
+                    </StackLayout>
+                </Border>
+
+                <!-- ZurÃƒÂ¼ck-Button (Ghost-Style, unten, +50px Abstand, weiße Kontur + Schatten) -->
+                <Border BackgroundColor="#b0f5e8"
+                        Stroke="White"
+                        StrokeThickness="2"
+                        HeightRequest="48"
+                        Padding="0"
+                        Margin="60,50,60,20">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#00695c" Opacity="0.35" Radius="14" Offset="0,5"/>
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding GoBackCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="ZurÃƒÂ¼ck"
+                           TextColor="#00695c"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+                </Border>
+
+                <!-- Unterer Abstand -->
+                <BoxView HeightRequest="10" BackgroundColor="Transparent"/>
+
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Bell Control -->
+        <controls:BellControl
+            x:Name="MyBell"
+            HorizontalOptions="End"
+            VerticalOptions="End"
+            Margin="0,0,10,10"/>
+
+    </Grid>
+
+</ContentPage>
+
+

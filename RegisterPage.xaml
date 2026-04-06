@@ -1,0 +1,158 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+             xmlns:controls="clr-namespace:NBH.Resources.Controls"
+             x:Class="NBH.RegisterPage"
+             x:DataType="viewModels:RegisterPageViewModel"
+             Title="Registrieren"
+             Shell.NavBarIsVisible="False"
+             Padding="0">
+
+    <Grid>
+        <!-- Hauptinhalt -->
+        <ScrollView>
+            <StackLayout Padding="30" Spacing="20">
+
+                <!-- Überschrift -->
+                <Label Text="Registrieren"
+                       Style="{StaticResource DisplayStyle}"
+                       HorizontalOptions="Center"
+                       TextColor="Black"/>
+
+                <!-- Benutzername -->
+                <VerticalStackLayout Spacing="5">
+                    <HorizontalStackLayout VerticalOptions="Center" Spacing="10">
+                        <Label Text="Benutzername" TextColor="Black" VerticalOptions="Center"/>
+                        <ImageButton Source="fragezeichen.png"
+                                     WidthRequest="16"
+                                     HeightRequest="16"
+                                     Padding="0"
+                                     BackgroundColor="Transparent"
+                                     Clicked="OnUsernameHelpClicked"/>
+                    </HorizontalStackLayout>
+                    <Border Padding="10" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="25"/></Border.StrokeShape>
+                        <Border.Stroke><SolidColorBrush Color="#B2B2B2"/></Border.Stroke>
+                        <Entry Placeholder="Benutzername" Text="{Binding Username}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- E-Mail -->
+                <VerticalStackLayout Spacing="5">
+                    <HorizontalStackLayout VerticalOptions="Center" Spacing="10">
+                        <Label Text="E-Mail" TextColor="Black" VerticalOptions="Center"/>
+                        <ImageButton Source="fragezeichen.png"
+                                     WidthRequest="16"
+                                     HeightRequest="16"
+                                     Padding="0"
+                                     BackgroundColor="Transparent"
+                                     Clicked="OnEmailHelpClicked"/>
+                    </HorizontalStackLayout>
+                    <Border Padding="10" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="25"/></Border.StrokeShape>
+                        <Border.Stroke><SolidColorBrush Color="#B2B2B2"/></Border.Stroke>
+                        <Entry Placeholder="E-Mail-Adresse" Text="{Binding Email}" Keyboard="Email"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Passwort -->
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Passwort" TextColor="Black"/>
+                    <Border Padding="10" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="25"/></Border.StrokeShape>
+                        <Border.Stroke><SolidColorBrush Color="#B2B2B2"/></Border.Stroke>
+                        <Entry Placeholder="Passwort" IsPassword="True" Text="{Binding Password}"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Passwort wiederholen -->
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Passwort wiederholen" TextColor="Black"/>
+                    <Border Padding="10" BackgroundColor="White">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="25"/></Border.StrokeShape>
+                        <Border.Stroke><SolidColorBrush Color="#B2B2B2"/></Border.Stroke>
+                        <Entry Placeholder="Passwort wiederholen" IsPassword="True" Text="{Binding ConfirmPassword}"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Fehleranzeige -->
+                <Border IsVisible="{Binding IsErrorVisible}"
+                        BackgroundColor="#FFF0F0"
+                        Stroke="#FFD0D0"
+                        StrokeThickness="1"
+                        Padding="12"
+                        Margin="0,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="#D32F2F"
+                           Style="{StaticResource BodyStyle}"/>
+                </Border>
+
+                <!-- Erfolgsanzeige -->
+                <Border IsVisible="{Binding IsSuccessVisible}"
+                        BackgroundColor="#E8F5E9"
+                        Stroke="#C8E6C9"
+                        StrokeThickness="1"
+                        Padding="12"
+                        Margin="0,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Label Text="Registrierung erfolgreich! Weiterleitung..."
+                           TextColor="#2E7D32"
+                           Style="{StaticResource BodyStyle}"/>
+                </Border>
+
+                <!-- Registrieren-Button mit Lade-Spinner -->
+                <Border HeightRequest="50"
+                        StrokeThickness="0"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="25"/>
+                    </Border.StrokeShape>
+                    <Border.Background>
+                        <SolidColorBrush Color="#5A9CA5"/>
+                    </Border.Background>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding RegisterCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Grid>
+                        <Label Text="Registrieren"
+                               TextColor="White"
+                               Style="{StaticResource TitleStyle}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}"/>
+                        <ActivityIndicator
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="White"
+                               WidthRequest="28"
+                               HeightRequest="28"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Login-Link -->
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                    <Label Text="Haben Sie schon ein Konto?" TextColor="Black"/>
+                    <Button Text="Hier anmelden"
+                            Command="{Binding NavigateToLoginCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="#5A9CA5"
+                            FontAttributes="Bold"/>
+                </HorizontalStackLayout>
+
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Loading Overlay -->
+        <controls:LoadingOverlay x:Name="RegisterLoadingOverlay"
+                                 Grid.RowSpan="99"
+                                 LoadingText="Konto wird erstellt..."
+                                 IsVisible="{Binding IsBusy}"/>
+    </Grid>
+</ContentPage>

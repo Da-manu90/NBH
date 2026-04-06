@@ -1,0 +1,12 @@
+<resources>
+     <!-- SplashScreen-Theme -->
+    <style name="SplashTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item> <!-- Beispiel: Schwarzer Hintergrund -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Standard-App-Theme -->
+    <style name="Theme.NBH.Launcher" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
+</resources>

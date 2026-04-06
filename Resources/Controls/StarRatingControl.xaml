@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="NBH.Resources.Controls.StarRatingControl"
+    x:Name="StarRatingControlRoot">
+    <Grid x:Name="RootGrid"
+          VerticalOptions="Center" HorizontalOptions="Start">
+        
+        <HorizontalStackLayout x:Name="StarsLayout" Spacing="2">
+            <!-- 5 Stern-Container per Code-Behind gefüllt oder via XAML. Wir machen XAML für Performance/Einfachheit. -->
+            <Grid WidthRequest="24" HeightRequest="24">
+                <Image x:Name="Star1Empty" Source="star_empty.png" Aspect="AspectFit"/>
+                <Image x:Name="Star1Fill" Source="star_filled.png" Aspect="AspectFit" Opacity="0"/>
+                <Button x:Name="Star1Btn" BackgroundColor="Transparent" CornerRadius="0" Command="{Binding SetRatingCommand, Source={x:Reference StarRatingControlRoot}}" CommandParameter="1"/>
+            </Grid>
+            <Grid WidthRequest="24" HeightRequest="24">
+                <Image x:Name="Star2Empty" Source="star_empty.png" Aspect="AspectFit"/>
+                <Image x:Name="Star2Fill" Source="star_filled.png" Aspect="AspectFit" Opacity="0"/>
+                <Button x:Name="Star2Btn" BackgroundColor="Transparent" CornerRadius="0" Command="{Binding SetRatingCommand, Source={x:Reference StarRatingControlRoot}}" CommandParameter="2"/>
+            </Grid>
+            <Grid WidthRequest="24" HeightRequest="24">
+                <Image x:Name="Star3Empty" Source="star_empty.png" Aspect="AspectFit"/>
+                <Image x:Name="Star3Fill" Source="star_filled.png" Aspect="AspectFit" Opacity="0"/>
+                <Button x:Name="Star3Btn" BackgroundColor="Transparent" CornerRadius="0" Command="{Binding SetRatingCommand, Source={x:Reference StarRatingControlRoot}}" CommandParameter="3"/>
+            </Grid>
+            <Grid WidthRequest="24" HeightRequest="24">
+                <Image x:Name="Star4Empty" Source="star_empty.png" Aspect="AspectFit"/>
+                <Image x:Name="Star4Fill" Source="star_filled.png" Aspect="AspectFit" Opacity="0"/>
+                <Button x:Name="Star4Btn" BackgroundColor="Transparent" CornerRadius="0" Command="{Binding SetRatingCommand, Source={x:Reference StarRatingControlRoot}}" CommandParameter="4"/>
+            </Grid>
+            <Grid WidthRequest="24" HeightRequest="24">
+                <Image x:Name="Star5Empty" Source="star_empty.png" Aspect="AspectFit"/>
+                <Image x:Name="Star5Fill" Source="star_filled.png" Aspect="AspectFit" Opacity="0"/>
+                <Button x:Name="Star5Btn" BackgroundColor="Transparent" CornerRadius="0" Command="{Binding SetRatingCommand, Source={x:Reference StarRatingControlRoot}}" CommandParameter="5"/>
+            </Grid>
+        </HorizontalStackLayout>
+
+        <!-- Label, das angezeigt wird, wenn keine Bewertungen vorhanden sind -->
+        <Label x:Name="NoRatingsLabel"
+               Text="Keine Bewertungen"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               Style="{StaticResource CaptionStyle}"
+               IsVisible="False" />
+    </Grid>
+</ContentView>

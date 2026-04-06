@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="NBH.FAQPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls"
+    xmlns:models="clr-namespace:NBH.Resources.Models"
+    xmlns:ff="clr-namespace:FFImageLoading.Maui;assembly=FFImageLoading.Maui"
+    Title="FAQ"
+    Shell.NavBarIsVisible="False"
+    Padding="0">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Border Grid.Row="0" HeightRequest="150" Padding="20,40,20,20">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="{StaticResource PageBackgroundStart}" Offset="0.0" />
+                    <GradientStop Color="{StaticResource PageBackgroundMid}" Offset="0.5" />
+                    <GradientStop Color="{StaticResource PageBackgroundEnd}" Offset="1.0" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Label Text="FAQ"
+                   Style="{StaticResource DisplayStyle}"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"/>
+        </Border>
+
+        <!-- Lade-Spinner (sichtbar wenn IsLoading=true) -->
+        <Grid Grid.Row="1" IsVisible="{Binding IsLoading}">
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               Color="#00897b"
+                               WidthRequest="48"
+                               HeightRequest="48"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+        </Grid>
+
+        <!-- Dynamic FAQ Categories -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Categories}"
+                        Margin="16,8"
+                        SelectionMode="None"
+                        IsVisible="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}}">
+
+            <CollectionView.EmptyView>
+                <controls:EmptyStateView
+                    Title="Keine FAQ-Einträge gefunden."
+                    IconSource="faq_placeholder.png" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:FAQCategory">
+                    <Border Margin="0,6" Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20"/>
+                        </Border.StrokeShape>
+
+                        <toolkit:Expander>
+                            <toolkit:Expander.Header>
+                                <Grid ColumnDefinitions="*,Auto" Padding="18,16">
+                                    <Label Text="{Binding CategoryTitle}"
+                                           Style="{StaticResource TitleStyle}"
+                                           VerticalOptions="Center"/>
+                                    <Image Grid.Column="1"
+                                           Source="chevron_down.png"
+                                           WidthRequest="20" HeightRequest="20"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+                            </toolkit:Expander.Header>
+
+                            <VerticalStackLayout Padding="0,0,0,8">
+                                <CollectionView ItemsSource="{Binding Items}">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:FAQRow">
+                                            <toolkit:Expander Margin="12,4">
+                                                <toolkit:Expander.Header>
+                                                    <Grid ColumnDefinitions="*,Auto" Padding="12,12">
+                                                        <Label Text="{Binding Subtitle}"
+                                                               Style="{StaticResource BodyLargeStyle}"
+                                                               FontAttributes="Bold"
+                                                               VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1" Text="+"
+                                                               Style="{StaticResource TitleStyle}"
+                                                               TextColor="{StaticResource AccentPrimary}"
+                                                               VerticalOptions="Center"/>
+                                                    </Grid>
+                                                </toolkit:Expander.Header>
+                                                
+                                                <VerticalStackLayout Padding="12,4,12,16" Spacing="10">
+                                                    <Label Text="{Binding Content}"
+                                                           Style="{StaticResource BodyStyle}"
+                                                           LineBreakMode="WordWrap"
+                                                           HorizontalOptions="Fill" />
+                                                </VerticalStackLayout>
+                                            </toolkit:Expander>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+
+                        </toolkit:Expander>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- TabBar placeholder (if app uses custom tab bar) -->
+        <controls:CustomTabBar Grid.Row="2" SelectedIndex="4" />
+
+    </Grid>
+</ContentPage>

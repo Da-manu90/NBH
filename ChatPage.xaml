@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage
+    x:Class="NBH.ChatPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:local="clr-namespace:NBH.Resources.Models"
+    xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+    ios:Page.UseSafeArea="True"
+    x:DataType="vm:ChatPageViewModel"
+    Title="Chat"
+    Shell.NavBarIsVisible="False"
+    Padding="0"
+    xmlns:ff="clr-namespace:FFImageLoading.Maui;assembly=FFImageLoading.Maui"
+    xmlns:controls="clr-namespace:NBH.Resources.Controls">
+
+    <!-- *********************************************
+         RESOURCEN (Templates + TemplateSelector)
+         ********************************************* -->
+    <ContentPage.Resources>
+        <ResourceDictionary>
+
+            <!-- Eingehende Nachricht (links) -->
+            <DataTemplate x:Key="IncomingMessageTemplate"
+                          x:DataType="local:ChatMessage">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Links -->
+                    <Border Grid.Column="0"
+                            StrokeShape="RoundRectangle 20"
+                            StrokeThickness="0"
+                            BackgroundColor="LightGray"
+                            Padding="10"
+                            Margin="0,5,0,5"
+                            HorizontalOptions="Start">
+                        <VerticalStackLayout>
+                            <!-- ChatMessage.Message -->
+                            <Label Text="{Binding Message}"
+                                   Style="{StaticResource BodyLargeStyle}"
+                                   TextColor="Black"
+                                   HorizontalOptions="Start" />
+
+                            <!-- Zeitstempel -->
+                            <Label Text="{Binding CreatedAt, StringFormat='{0:HH:mm}'}"
+                                   FontSize="10"
+                                   TextColor="#A0A0A0"
+                                   HorizontalOptions="End" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </DataTemplate>
+
+            <!-- Ausgehende Nachricht (rechts) -->
+            <DataTemplate x:Key="OutgoingMessageTemplate"
+                          x:DataType="local:ChatMessage">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="4*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Rechts -->
+                    <Border Grid.Column="1"
+                            StrokeShape="RoundRectangle 20"
+                            StrokeThickness="0"
+                            BackgroundColor="LightBlue"
+                            Padding="10"
+                            Margin="0,5,0,5"
+                            HorizontalOptions="End">
+                        <VerticalStackLayout>
+                            <Label Text="{Binding Message}"
+                                   Style="{StaticResource BodyLargeStyle}"
+                                   TextColor="Black"
+                                   HorizontalOptions="End" />
+                            <Label Text="{Binding CreatedAt, StringFormat='{0:HH:mm}'}"
+                                   FontSize="10"
+                                   TextColor="#A0A0A0"
+                                   HorizontalOptions="End" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </DataTemplate>
+
+            <!-- TemplateSelector für eingehend/ausgehend -->
+            <local:ChatMessageDataTemplateSelector
+                x:Key="ChatMessageDataTemplateSelector"
+                IncomingTemplate="{StaticResource IncomingMessageTemplate}"
+                OutgoingTemplate="{StaticResource OutgoingMessageTemplate}" />
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+
+    <!-- *********************************************
+         HINTERGRUND
+         ********************************************* -->
+
+
+    <!-- *********************************************
+         PAGE CONTENT
+         ********************************************* -->
+    <ContentPage.Content>
+        <!-- Haupt-Grid: 3 Zeilen:
+             Row 0 = Oberer Balken
+             Row 1 = Nachrichten-Liste
+             Row 2 = Bottom-Bar
+        -->
+        <Grid RowDefinitions="Auto, *, Auto">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBackgroundTapped"/>
+            </Grid.GestureRecognizers>
+
+            <!-- OBERER BALKEN -->
+            <Grid Row="0"
+                  ColumnDefinitions="Auto, *, Auto"
+                  Padding="0"
+                  HeightRequest="60">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#333333" Offset="0.0" />
+                        <GradientStop Color="#6b6b6b" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+
+                <!-- Zurück-Button -->
+                <Border StrokeShape="RoundRectangle 0"
+                        StrokeThickness="0"
+                        BackgroundColor="Transparent"
+                        Padding="0"
+                        WidthRequest="50"
+                        HeightRequest="60"
+                        HorizontalOptions="Start"
+                        VerticalOptions="Center">
+                    <Label Text="&#x3C;"
+                           FontSize="24"
+                           TextColor="#262626"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                    <Border.GestureRecognizers>
+                        <!-- Command aus dem ViewModel -->
+                        <TapGestureRecognizer Command="{Binding GoBackCommand}" />
+                    </Border.GestureRecognizers>
+                </Border>
+
+                <!-- Profilbild + Chatpartnername, mittig -->
+                <Grid Grid.Column="1"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center"
+                      ColumnDefinitions="Auto, Auto"
+                      Margin="10,0">
+
+                    <!-- Runder weißer Rand (2px), Bild 60px -->
+                    <Border WidthRequest="55"
+                            HeightRequest="55"
+                            Stroke="White"
+                            StrokeThickness="2"
+                            StrokeShape="RoundRectangle 34"
+                            BackgroundColor="Transparent"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center">
+                        <ff:CachedImage Source="{Binding ChatPartnerImageUrl}"
+                                       WidthRequest="55"
+                                       HeightRequest="55"
+                                       Aspect="AspectFill"
+                                       CacheDuration="7"
+                                       LoadingPlaceholder="profile_placeholder.png"
+                                       ErrorPlaceholder="profile_placeholder.png"
+                                       DownsampleToViewSize="True"/>
+                    </Border>
+
+                    <Label Grid.Column="1"
+                           Text="{Binding ChatPartnerName}"
+                           Style="{StaticResource TitleStyle}"
+                           VerticalOptions="Center"
+                           Margin="10,0,0,0" />
+                </Grid>
+            </Grid>
+
+
+            <!-- LADEZUSTAND -->
+            <ActivityIndicator Grid.Row="1"
+                               IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#00897b"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"/>
+
+            <!-- NACHRICHTEN-LISTE -->
+            <Grid Grid.Row="1">
+                <CollectionView
+                    x:Name="MessagesCollectionView"
+                    ItemsSource="{Binding Messages}"
+                    SelectionMode="None"
+                    Margin="10,0,10,10"
+                    RemainingItemsThreshold="5"
+                    RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
+                    ItemTemplate="{StaticResource ChatMessageDataTemplateSelector}" />
+
+                <!-- Schreibanzeige (Schwebend am Ende der Liste) -->
+                <controls:TypingIndicatorControl 
+                    IsVisible="{Binding IsPartnerTyping}"
+                    VerticalOptions="End"
+                    HorizontalOptions="Start"
+                    Margin="20,0,0,20" />
+            </Grid>
+
+
+            <!-- BOTTOM BAR -->
+            <Border Grid.Row="2"
+                    StrokeShape="RoundRectangle 20,20,0,0"
+                    StrokeThickness="0"
+                    Padding="10"
+                    HeightRequest="120"
+                    HorizontalOptions="FillAndExpand"
+                    VerticalOptions="End">
+
+                <!-- Unterer Verlauf-Hintergrund -->
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#333333" Offset="0.0" />
+                        <GradientStop Color="#6b6b6b" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Border.Background>
+
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <!-- Editor-Feld für Nachricht -->
+                    <Border StrokeShape="RoundRectangle 25"
+                            StrokeThickness="0"
+                            BackgroundColor="White"
+                            VerticalOptions="Center">
+                        <Editor x:Name="MessageEntry"
+                                Text="{Binding CurrentMessageText}"
+                                Placeholder="Nachricht eingeben..."
+                                PlaceholderColor="#b2b3b3"
+                                Style="{StaticResource BodyLargeStyle}"
+                                AutoSize="Disabled"
+                                HeightRequest="90"
+                                MaxLength="400" />
+                    </Border>
+
+                    <!-- SENDEN-Button -->
+                    <Border Grid.Column="1"
+                            WidthRequest="80"
+                            HeightRequest="60"
+                            Stroke="White"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 25"
+                            BackgroundColor="Transparent"
+                            VerticalOptions="Center"
+                            Margin="10,0,0,0">
+
+                        <Border.Shadow>
+                            <Shadow Brush="Black"
+                                    Offset="4,0"
+                                    Radius="2.2"
+                                    Opacity="0.2" />
+                        </Border.Shadow>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#00d2a8" Offset="0.0" />
+                                <GradientStop Color="#00897b" Offset="1.0" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+
+                        <Label Text="SENDEN"
+                               TextColor="White"
+                               Style="{StaticResource TitleStyle}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnSendButtonTapped" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </ContentPage.Content>
+</ContentPage>
+

@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             x:Class="NBH.MapPage"
+             Shell.NavBarIsVisible="False"
+             Padding="0"
+             xmlns:controls="clr-namespace:NBH.Resources.Controls">
+    <Grid RowDefinitions="*,Auto">
+        
+        <!-- Karte füllt gesamten Hintergrund -->
+        <maps:Map x:Name="MainMap"
+                  Grid.RowSpan="2"
+                  VerticalOptions="FillAndExpand"
+                  HorizontalOptions="FillAndExpand" />
+
+        <!-- Header-Bereich: Blur / Semi-transparent -->
+        <Border BackgroundColor="#CCFFFFFF"
+                VerticalOptions="Start"
+                HorizontalOptions="Center"
+                Margin="12,52,12,0"
+                Padding="16,12">
+            <Border.StrokeShape><RoundRectangle CornerRadius="20"/></Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="Black" Offset="0,4" Radius="12" Opacity="0.12"/>
+            </Border.Shadow>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                <Label Text="📍 Karte in der Nähe"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       VerticalOptions="Center"/>
+                <Button Grid.Column="1"
+                        Text="⊕"
+                        Clicked="OnLoadCurrentLocationClicked"
+                        WidthRequest="40" HeightRequest="40"
+                        CornerRadius="20"
+                        Padding="0"
+                        BackgroundColor="#00897b"
+                        TextColor="White"
+                        FontSize="18"/>
+            </Grid>
+        </Border>
+
+        <!-- Suchfeld -->
+        <Border BackgroundColor="#F0FFFFFF"
+                VerticalOptions="End"
+                HorizontalOptions="Fill"
+                Margin="12,0,12,100"
+                Padding="12,8">
+            <Border.StrokeShape><RoundRectangle CornerRadius="28"/></Border.StrokeShape>
+            <Border.Stroke><SolidColorBrush Color="#20000000"/></Border.Stroke>
+            <Border.Shadow>
+                <Shadow Brush="Black" Offset="0,4" Radius="16" Opacity="0.15"/>
+            </Border.Shadow>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Entry x:Name="SearchEntry"
+                       Placeholder="Ort suchen..."
+                       PlaceholderColor="#80000000"
+                       TextColor="#1A1A1A"
+                       BackgroundColor="Transparent"
+                       FontSize="15"
+                       VerticalOptions="Center"/>
+                <Button Grid.Column="1"
+                        Text="Suchen"
+                        Clicked="OnSearchClicked"
+                        CornerRadius="18"
+                        HeightRequest="36"
+                        BackgroundColor="#00897b"
+                        TextColor="White"
+                        FontSize="13"
+                        Padding="14,0"/>
+            </Grid>
+        </Border>
+
+        <controls:BellControl
+            x:Name="MyBell"
+            HorizontalOptions="End"
+            VerticalOptions="End"
+            Margin="0,0,10,30" />
+    
+        <controls:CustomTabBar
+            x:Name="MyTabBar"
+            Grid.Row="1"
+            SelectedIndex="1"/>
+
+    </Grid>
+</ContentPage>
+
