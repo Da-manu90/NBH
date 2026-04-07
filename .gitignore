@@ -68,3 +68,15 @@ Supabase/supabase/functions/*/index.ts
 *.zip
 *.7z
 *.rar
+
+# Planungsdokumente & Build-Logs (gehören nicht ins App-Repo)
+*.docx
+build_clean.log
+build_latest.log
+debug_fix.ps1
+script.py
+
+# SQL-Migrationen & Supabase-Backup (liegen in NBH_Supabase/)
+Supabase/
+analysis/
+*.sql
