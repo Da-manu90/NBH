@@ -107,11 +107,34 @@
                             <TapGestureRecognizer Tapped="OnTab3Tapped"/>
                         </Grid.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                            <Image x:Name="Icon3" Source="chat.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
-                                <Image.Shadow>
-                                    <Shadow x:Name="Glow3" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
-                                </Image.Shadow>
-                            </Image>
+                            <Grid HorizontalOptions="Center">
+                                <Image x:Name="Icon3" Source="chat.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                    <Image.Shadow>
+                                        <Shadow x:Name="Glow3" Brush="White" Opacity="0" Radius="15" Offset="0,0" />
+                                    </Image.Shadow>
+                                </Image>
+                                <Border x:Name="ChatBadgeFrame"
+                                        BackgroundColor="#D32F2F"
+                                        StrokeThickness="0"
+                                        Padding="4,1"
+                                        MinimumWidthRequest="18"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start"
+                                        TranslationX="8"
+                                        TranslationY="-6"
+                                        IsVisible="False">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="9"/>
+                                    </Border.StrokeShape>
+                                    <Label x:Name="ChatBadgeLabel"
+                                           Text="0"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+                                </Border>
+                            </Grid>
                             <Label x:Name="Label3" Text="Chat" FontSize="10" HorizontalOptions="Center" TextColor="White"/>
                         </VerticalStackLayout>
                     </Grid>
@@ -122,7 +145,7 @@
                             <TapGestureRecognizer Tapped="OnTab4Tapped"/>
                         </Grid.GestureRecognizers>
                         <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                            <Image x:Name="Icon4" Source="faq.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                            <Image x:Name="Icon4" Source="fragezeichen.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
                                 <Image.Shadow>
                                     <Shadow x:Name="Glow4" Brush="#318AC0" Opacity="0" Radius="15" Offset="0,0" />
                                 </Image.Shadow>

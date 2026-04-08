@@ -52,6 +52,7 @@ NBH.csproj.user
 
 # Secrets & Credentials
 AppConfig.cs
+Properties/launchSettings.json
 Platforms/Android/google-services.json
 Platforms/iOS/GoogleService-Info.plist
 

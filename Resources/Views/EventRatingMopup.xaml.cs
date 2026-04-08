@@ -42,7 +42,7 @@ namespace NBH.Resources.Views
             // HttpClient
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("https://entpyczncbnavvudfgrb.supabase.co/rest/v1/")
+                BaseAddress = new Uri($"{AppConfig.SupabaseUrl}/rest/v1/")
             };
 
             // Initiale Ratings auf 0
@@ -57,16 +57,7 @@ namespace NBH.Resources.Views
         {
             try
             {
-                var userJwt = await SecureStorage.GetAsync("jwt_token");
-                if (string.IsNullOrEmpty(userJwt))
-                {
-                    userJwt = await _authService.GetUserAccessTokenAsync();
-                    await SecureStorage.SetAsync("jwt_token", userJwt);
-                }
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", userJwt);
-                _httpClient.DefaultRequestHeaders.Add("apikey", AppConfig.SupabaseAnonKey);
+                await EnsureAuthHeadersAsync();
 
                 var url = $"users?id=eq.{_reviewedId}";
                 var response = await _httpClient.GetAsync(url);
@@ -165,6 +156,7 @@ namespace NBH.Resources.Views
             var button = (Button)sender;
             await button.ScaleTo(0.9, 100);
             await button.ScaleTo(1.0, 100);
+            await EnsureAuthHeadersAsync();
             // Falls 0 nicht erlaubt, setze Minimalwert 1
             int finalEventFriendliness = (_eventFriendlinessRating < 1) ? 1 : _eventFriendlinessRating;
             int finalDescriptionAccuracy = (_descriptionAccuracyRating < 1) ? 1 : _descriptionAccuracyRating;
@@ -175,20 +167,18 @@ namespace NBH.Resources.Views
 
             var review = new
             {
-                event_id = _eventId,
-                reviewer_id = _reviewerId,
-                reviewed_id = _reviewedId,
-                event_friendliness = finalEventFriendliness,
-                description_accuracy = finalDescriptionAccuracy,
-                reliability = finalReliability,
-                comment = commentText,        // NEU: Kommentar in DB
-                created_at = DateTime.UtcNow
+                p_event_id = _eventId,
+                p_reviewed_id = _reviewedId,
+                p_event_friendliness = finalEventFriendliness,
+                p_description_accuracy = finalDescriptionAccuracy,
+                p_reliability = finalReliability,
+                p_comment = commentText
             };
 
             var json = JsonConvert.SerializeObject(review);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("event_rating", content);
+            var response = await _httpClient.PostAsync("rpc/submit_event_review_safe", content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -200,6 +190,21 @@ namespace NBH.Resources.Views
                 var err = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Fehler beim Speichern der Bewertung: {response.StatusCode} - {response.ReasonPhrase}. Details: {err}");
             }
+        }
+
+        private async Task EnsureAuthHeadersAsync()
+        {
+            var userJwt = await SecureStorage.GetAsync("jwt_token");
+            if (string.IsNullOrEmpty(userJwt))
+            {
+                userJwt = await _authService.GetUserAccessTokenAsync();
+                await SecureStorage.SetAsync("jwt_token", userJwt);
+            }
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", userJwt);
+            _httpClient.DefaultRequestHeaders.Add("apikey", AppConfig.SupabaseAnonKey);
         }
 
         // -----------------------------

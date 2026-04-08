@@ -142,6 +142,135 @@
                             HeightRequest="600"
                             HorizontalOptions="FillAndExpand" />
 
+                        <!-- Featured Carousel -->
+                        <VerticalStackLayout IsVisible="{Binding HasFeaturedEntries}"
+                                             Spacing="8"
+                                             Padding="16,0,16,10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <HorizontalStackLayout Grid.Column="0" Spacing="8">
+                                    <Label Text="⭐"
+                                           FontSize="16"
+                                           VerticalOptions="Center"/>
+                                    <Label Text="Beliebte &amp; wichtige Einträge"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#00695c"/>
+                                </HorizontalStackLayout>
+                                <Button Grid.Column="1"
+                                        Text="{Binding FeaturedToggleText}"
+                                        Command="{Binding ToggleFeaturedSectionCommand}"
+                                        BackgroundColor="#E4F8F4"
+                                        TextColor="#00695c"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        Padding="10,4"
+                                        CornerRadius="12"
+                                        HeightRequest="32"/>
+                            </Grid>
+
+                            <CarouselView IsVisible="{Binding ShowFeaturedSection}"
+                                          ItemsSource="{Binding FeaturedEntries}"
+                                          HeightRequest="190"
+                                          PeekAreaInsets="22">
+                                <CarouselView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Horizontal"
+                                                       SnapPointsType="MandatorySingle"
+                                                       SnapPointsAlignment="Center"/>
+                                </CarouselView.ItemsLayout>
+                                <CarouselView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:EntryItem">
+                                        <Border BackgroundColor="#F8FFFD"
+                                                Stroke="#12000000"
+                                                StrokeThickness="1"
+                                                Padding="12"
+                                                Margin="4,0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18"/>
+                                            </Border.StrokeShape>
+                                            <Border.Shadow>
+                                                <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
+                                            </Border.Shadow>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:AddPageViewModel}}, Path=OpenDetailCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+
+                                            <VerticalStackLayout Spacing="8">
+                                                <Grid ColumnDefinitions="Auto,8,Auto,*,Auto">
+                                                    <Border Grid.Column="0"
+                                                            BackgroundColor="#E4F8F4"
+                                                            Padding="8,3"
+                                                            StrokeThickness="0">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10"/>
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding category}"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#00695c"/>
+                                                    </Border>
+                                                    <Border Grid.Column="2"
+                                                            BackgroundColor="#EEF3FF"
+                                                            Padding="8,3"
+                                                            StrokeThickness="0">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10"/>
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding event_type}"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#2E4A8A"/>
+                                                    </Border>
+                                                    <Border Grid.Column="4"
+                                                            BackgroundColor="#00d2a8"
+                                                            Padding="10,3"
+                                                            StrokeThickness="0">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10"/>
+                                                        </Border.StrokeShape>
+                                                        <Label Text="Details"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="White"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <Label Text="{Binding title}"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#13201D"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="1"/>
+
+                                                <Label Text="{Binding description}"
+                                                       FontSize="13"
+                                                       TextColor="#586663"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="2"/>
+
+                                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                                    <Label Grid.Column="0"
+                                                           Text="{Binding location, StringFormat='📍 {0}'}"
+                                                           FontSize="11"
+                                                           TextColor="#6C7A76"
+                                                           LineBreakMode="TailTruncation"/>
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding created_date, StringFormat='{0:dd.MM}'}"
+                                                           FontSize="11"
+                                                           TextColor="#6C7A76"/>
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding max_participants, StringFormat='👥 {0}'}"
+                                                           FontSize="11"
+                                                           TextColor="#6C7A76"/>
+                                                </Grid>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CarouselView.ItemTemplate>
+                            </CarouselView>
+                        </VerticalStackLayout>
+
                         <!-- CollectionView für vorhandene Einträge -->
                         <CollectionView
                             IsVisible="{Binding IsNotLoading}"

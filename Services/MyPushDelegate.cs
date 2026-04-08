@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -126,7 +126,7 @@ namespace NBH.Services
                 var entryId = notification.Data["entryId"];
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await Shell.Current.GoToAsync($"detail?entryId={entryId}");
+                    await Shell.Current.GoToAsync($"{Routes.DetailPage}?entryId={entryId}");
                 });
             }
         }

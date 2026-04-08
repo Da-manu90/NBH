@@ -98,22 +98,18 @@ namespace NBH.Resources.ViewModels
                         _logger.LogInformation($"[DetailPageVM] SelectedEntry => Title:{_selectedEntry.title}, Standort:{_selectedEntry.location}");
 
                         // 1) User laden
-                        LoadUserDataAsync();
+                        _ = SafeExecuteAsync(LoadUserDataAsync, nameof(LoadUserDataAsync));
 
                         // 2) Dynamische Button-Logik
-                        LoadEntryState();
+                        _ = SafeExecuteAsync(LoadEntryState, nameof(LoadEntryState));
 
-                        // 3) Sterne-Berechnung
-                        if (!string.IsNullOrEmpty(_selectedEntry.user_id))
-                        {
-                            _ = CalculateDetailedRatingAsync(_selectedEntry.user_id);
-                        }
-
-                        // 4) Gruppen-Event-Daten
+                        // 3) Gruppen-Event-Daten
                         IsGroupEvent = _selectedEntry.IsGroupEvent;
                         if (IsGroupEvent)
                         {
-                            _ = LoadGroupEventDataAsync(_selectedEntry.id);
+                            _ = SafeExecuteAsync(
+                                () => LoadGroupEventDataAsync(_selectedEntry.id),
+                                nameof(LoadGroupEventDataAsync));
                         }
                     }
                 }
@@ -266,7 +262,7 @@ namespace NBH.Resources.ViewModels
                     var result = await RejectEventAsync();
                     if (result)
                     {
-                        LoadEntryState();
+                        _ = SafeExecuteAsync(LoadEntryState, nameof(LoadEntryState));
                     }
                 });
             }
@@ -370,6 +366,31 @@ namespace NBH.Resources.ViewModels
             try
             {
                 // Prüfen, ob bereits Chat existiert (user_id==A && partner_id==B ODER user_id==B && partner_id==A)
+                if (!Guid.TryParse(SelectedEntry.user_id, out var partnerId))
+                {
+                    _logger.LogWarning("[CreateNewChatAsync] Partner-ID ist keine gültige Guid.");
+                    return;
+                }
+
+                var createChatRpcParams = new Dictionary<string, object>
+                {
+                    { "p_partner_id", partnerId }
+                };
+
+                var createChatResponse = await _supabaseClient.Rpc("find_or_create_chat_safe", createChatRpcParams);
+                var existingOrNewChatId = string.IsNullOrWhiteSpace(createChatResponse?.Content)
+                    ? Guid.Empty
+                    : JsonConvert.DeserializeObject<Guid>(createChatResponse.Content);
+
+                if (existingOrNewChatId == Guid.Empty)
+                {
+                    _logger.LogWarning("[CreateNewChatAsync] Konnte Chat nicht erstellen oder finden.");
+                    return;
+                }
+
+                await Shell.Current.GoToAsync($"ChatPage?chatId={existingOrNewChatId}");
+
+#if false
                 var q1 = await _supabaseClient
                     .From<PublicChat>()
                     .Filter("user_id", Operator.Equals, currentUserId)
@@ -412,6 +433,7 @@ namespace NBH.Resources.ViewModels
                 {
                     _logger.LogWarning("[CreateNewChatAsync] Konnte neuen Chat nicht erstellen.");
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -427,7 +449,7 @@ namespace NBH.Resources.ViewModels
         // ----------------------------------------------------------------
         // NUTZER-DATEN LADEN
         // ----------------------------------------------------------------
-        private async void LoadUserDataAsync()
+        private async Task LoadUserDataAsync()
         {
             if (SelectedEntry?.user_id == null)
                 return;
@@ -449,12 +471,20 @@ namespace NBH.Resources.ViewModels
                     return;
                 }
 
-                var userResp = await _supabaseClient
-                    .From<User>() // dein benanntes Model, analog zu "UserProfile" in alt. 
-                    .Where(u => u.Id == userGuid)
-                    .Get();
+                if (await TryLoadProfileSummaryAsync(userGuid))
+                {
+                    return;
+                }
 
-                var foundUser = userResp.Models.FirstOrDefault();
+                var userResponse = await _supabaseClient.Rpc("get_public_user_profile", new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                });
+
+                var foundUser = string.IsNullOrWhiteSpace(userResponse?.Content)
+                    ? null
+                    : JsonConvert.DeserializeObject<PublicUserProfile>(userResponse.Content);
+
                 if (foundUser != null)
                 {
                     ProfileImageUrl = string.IsNullOrWhiteSpace(foundUser.ProfileImageUrl)
@@ -464,11 +494,61 @@ namespace NBH.Resources.ViewModels
                             .GetPublicUrl(foundUser.ProfileImageUrl);
 
                     Username = foundUser.Username;
+
+                    if (!string.IsNullOrWhiteSpace(SelectedEntry?.user_id))
+                    {
+                        await CalculateDetailedRatingAsync(SelectedEntry.user_id);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[LoadUserDataAsync] Fehler");
+            }
+        }
+
+        private async Task<bool> TryLoadProfileSummaryAsync(Guid userGuid)
+        {
+            try
+            {
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                };
+
+                var response = await _supabaseClient.Rpc("get_user_profile_summary", rpcParams);
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                {
+                    return false;
+                }
+
+                var summary = JsonConvert.DeserializeObject<UserProfileSummary>(response.Content);
+                if (summary?.User == null)
+                {
+                    return false;
+                }
+
+                ProfileImageUrl = string.IsNullOrWhiteSpace(summary.User.ProfileImageUrl)
+                    ? "profile_placeholder.png"
+                    : _supabaseClient.Storage
+                        .From("profile_pictures")
+                        .GetPublicUrl(summary.User.ProfileImageUrl);
+
+                Username = summary.User.Username ?? string.Empty;
+                FinalRating = Math.Round(summary.Rating?.FinalRating ?? 0.0, 1);
+                FinalRatingCount = summary.Rating?.TotalCount ?? 0;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    UpdateStarsAction?.Invoke(FinalRating, FinalRatingCount);
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[TryLoadProfileSummaryAsync] RPC nicht verfügbar, nutze Fallback.");
+                return false;
             }
         }
 
@@ -501,7 +581,7 @@ namespace NBH.Resources.ViewModels
 
                 if (SelectedEntry.event_partner_id.HasValue)
                 {
-                    var ownerName = _authService.GetCurrentUserEmail(); // await entfernt
+                    var ownerName = _authService.GetCurrentUserEmail();
                     var eventTitle = SelectedEntry.title ?? "Dein Event";
                     var partnerGuid = SelectedEntry.event_partner_id.Value;
 
@@ -546,7 +626,7 @@ namespace NBH.Resources.ViewModels
         ///       -> !is_confirmed ? "Warten auf Bestätigung" (nicht klickbar)
         ///       -> is_confirmed ? "Bewertung abgeben" (klickbar)
         /// </summary>
-        private async void LoadEntryState()
+        private async Task LoadEntryState()
         {
             _logger.LogInformation("LoadEntryState() aufgerufen");
 
@@ -576,6 +656,13 @@ namespace NBH.Resources.ViewModels
             // Standardwert: kein zusätzlicher Bereich für "Ablehnen" anzeigen
             IsEventPartnerChoiceVisible = false;
 
+            // Gruppen-Events nutzen eigene Rollen-/Bewerbungslogik im Contentbereich.
+            if (IsGroupEvent)
+            {
+                IsEntryActionButtonVisible = false;
+                return;
+            }
+
             // ------------------
             // Weder Owner noch Partner
             // ------------------
@@ -589,7 +676,7 @@ namespace NBH.Resources.ViewModels
                     {
                         _logger.LogInformation(">>> Annehmen-Button geklickt");
                         var ok = await AcceptEntryAsync();
-                        if (ok) LoadEntryState();
+                        if (ok) _ = SafeExecuteAsync(LoadEntryState, nameof(LoadEntryState));
                     });
                     IsEntryActionButtonVisible = true;
                 }
@@ -625,7 +712,7 @@ namespace NBH.Resources.ViewModels
                         {
                             _logger.LogInformation(">>> Event bestätigen geklickt");
                             var ok = await ConfirmEntryAsync();
-                            if (ok) LoadEntryState();
+                            if (ok) _ = SafeExecuteAsync(LoadEntryState, nameof(LoadEntryState));
                         });
                         IsEventPartnerChoiceVisible = true;
                         IsEntryActionButtonVisible = true;
@@ -707,7 +794,7 @@ namespace NBH.Resources.ViewModels
                 _logger.LogInformation("RefreshEntryStateAsync: Aktualisiere SelectedEntry und rufe LoadEntryState() auf");
                 SelectedEntry = updatedEntry;
 
-                LoadEntryState();
+                _ = SafeExecuteAsync(LoadEntryState, nameof(LoadEntryState));
             }
             catch (Exception ex)
             {
@@ -729,7 +816,7 @@ namespace NBH.Resources.ViewModels
             _logger.LogInformation("AcceptEntryAsync: event_partner_id = currentUserId");
 
             var currentUserId = _authService.GetCurrentUserId();
-            if (!Guid.TryParse(currentUserId, out var partnerGuid))
+            if (!Guid.TryParse(currentUserId, out _))
             {
                 _logger.LogWarning("AcceptEntryAsync: currentUserId kein gültiger GUID => Abbruch");
                 return false;
@@ -737,25 +824,28 @@ namespace NBH.Resources.ViewModels
 
             try
             {
-                var updateResp = await _supabaseClient
-                    .From<EntryItem>()
-                    .Where(e => e.id == SelectedEntry.id)
-                    .Set(e => e.event_partner_id, partnerGuid)
-                    .Update();
-
-                if (updateResp.Models == null || updateResp.Models.Count == 0)
+                var acceptRpcParams = new Dictionary<string, object>
                 {
-                    _logger.LogWarning("AcceptEntryAsync: Update fehlgeschlagen => Abbruch");
+                    { "p_entry_id", SelectedEntry.id }
+                };
+
+                var acceptResponse = await _supabaseClient.Rpc("accept_entry_partner_safe", acceptRpcParams);
+                var ownerGuidFromRpc = string.IsNullOrWhiteSpace(acceptResponse?.Content)
+                    ? Guid.Empty
+                    : JsonConvert.DeserializeObject<Guid>(acceptResponse.Content);
+
+                if (ownerGuidFromRpc == Guid.Empty)
+                {
+                    _logger.LogWarning("AcceptEntryAsync: RPC lieferte keinen Owner zurück => Abbruch");
                     return false;
                 }
 
-                var partnerName = _authService.GetCurrentUserEmail(); // await entfernt
-                var eventTitle = SelectedEntry.title ?? "Dein Event";
-                var ownerGuid = Guid.Parse(SelectedEntry.user_id);
+                var partnerDisplayName = _authService.GetCurrentUserEmail();
+                var acceptedEventTitle = SelectedEntry.title ?? "Dein Event";
 
                 await _notificationService.AddNotificationAsync(
-                    userId: ownerGuid,
-                    message: $"{partnerName} hat dein Event '{eventTitle}' angenommen.",
+                    userId: ownerGuidFromRpc,
+                    message: $"{partnerDisplayName} hat dein Event '{acceptedEventTitle}' angenommen.",
                     type: "event_accepted",
                     actionData: $"{{ \"event_id\":\"{SelectedEntry.id}\", \"HasRatingButton\":true }}"
                 );
@@ -842,28 +932,19 @@ namespace NBH.Resources.ViewModels
             if (SelectedEntry == null)
                 return false;
 
-            var currentUserId = _authService.GetCurrentUserId();
-            if (string.IsNullOrEmpty(currentUserId))
+            if (string.IsNullOrEmpty(_authService.GetCurrentUserId()))
                 return false;
 
             try
             {
-                // event_id=eq.{SelectedEntry.id} & reviewer_id=eq.{currentUserId}
-                var reviewResp = await _supabaseClient
-                    .From<EventRating>()
-                    .Filter("event_id", Operator.Equals, SelectedEntry.id.ToString())
-                    .Filter("reviewer_id", Operator.Equals, currentUserId)
-                    .Get();
-
-                var existingRatings = reviewResp.Models;
-                if (existingRatings != null && existingRatings.Count > 0)
+                var rpcParams = new Dictionary<string, object>
                 {
-                    // Bewertung existiert => nicht nochmal erlaubt
-                    return false;
-                }
+                    { "p_event_id", SelectedEntry.id }
+                };
 
-                // Nur erlaubt, wenn das Event bestätigt ist
-                return SelectedEntry.is_confirmed;
+                var response = await _supabaseClient.Rpc("can_submit_event_review_safe", rpcParams);
+                return !string.IsNullOrWhiteSpace(response?.Content) &&
+                       JsonConvert.DeserializeObject<bool>(response.Content);
             }
             catch (Exception ex)
             {
@@ -976,13 +1057,13 @@ namespace NBH.Resources.ViewModels
         {
             if (SelectedEntry == null) return;
 
-            var action = await Shell.Current.DisplayActionSheet(
+            var action = await Shell.Current.DisplayActionSheetAsync(
                 "Optionen", "Abbrechen", null,
                 "Eintrag melden");
 
             if (action == "Eintrag melden")
             {
-                var reason = await Shell.Current.DisplayActionSheet(
+                var reason = await Shell.Current.DisplayActionSheetAsync(
                     "Grund wählen", "Abbrechen", null,
                     "Spam", "Unangemessener Inhalt", "Falsche Informationen", "Anderes");
 
@@ -1001,5 +1082,17 @@ namespace NBH.Resources.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        private async Task SafeExecuteAsync(Func<Task> action, string operationName)
+        {
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DetailPageViewModel] Fehler in {OperationName}", operationName);
+            }
+        }
     }
 }

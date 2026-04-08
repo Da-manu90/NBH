@@ -19,6 +19,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Maui.ApplicationModel;
 using Newtonsoft.Json;
 
 namespace NBH.Services
@@ -37,9 +38,10 @@ namespace NBH.Services
 
         private readonly List<ChannelInfo> _channelsToSubscribe = new();
         private bool _isReconnecting = false;
-        private const int ReconnectInterval = 60_000;
         private int _tokenFailCount = 0;
         private int _refCounter = 0; // FIX 7: Inkrementierende Ref-IDs
+        private int _reconnectAttempts = 0;
+        private const int MaxReconnectAttempts = 10;
 
         /// <summary>
         /// Event, das bei "INSERT"/"UPDATE"/"DELETE" ausgelöst wird.
@@ -125,6 +127,49 @@ namespace NBH.Services
             }
         }
 
+        public async Task UnsubscribeChannelAsync(string table, string filter = "")
+        {
+            var existing = _channelsToSubscribe.FirstOrDefault(c =>
+                string.Equals(c.Table, table, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(c.Filter ?? string.Empty, filter ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+
+            if (existing == null)
+            {
+                return;
+            }
+
+            _channelsToSubscribe.Remove(existing);
+
+            if (_webSocket?.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            try
+            {
+                var refId = Interlocked.Increment(ref _refCounter).ToString();
+                var leavePayload = new
+                {
+                    topic = existing.Topic,
+                    @event = "phx_leave",
+                    payload = new { },
+                    @ref = refId
+                };
+
+                var json = JsonConvert.SerializeObject(leavePayload);
+                var bytes = Encoding.UTF8.GetBytes(json);
+                await _webSocket.SendAsync(
+                    new ArraySegment<byte>(bytes),
+                    WebSocketMessageType.Text,
+                    true,
+                    _cts.Token);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[PhoenixRealtimeService] UnsubscribeChannelAsync ERROR => " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Baut die Verbindung auf, setzt Header, und joint alle Channels.
         /// </summary>
@@ -186,6 +231,7 @@ namespace NBH.Services
 
                 if (_webSocket.State == WebSocketState.Open)
                 {
+                    _reconnectAttempts = 0;
                     // Starte ReceiveLoop
                     _ = Task.Run(() => ReceiveLoopAsync());
 
@@ -279,13 +325,28 @@ namespace NBH.Services
         private void ScheduleReconnect()
         {
             if (_isReconnecting)
+            {
                 return;
-            _isReconnecting = true;
+            }
 
-            Console.WriteLine("[PhoenixRealtimeService] ScheduleReconnect => in 60s...");
+            if (_reconnectAttempts >= MaxReconnectAttempts)
+            {
+                Console.WriteLine("[PhoenixRealtimeService] Max reconnect attempts reached");
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    SessionExpired?.Invoke(this, EventArgs.Empty);
+                });
+                return;
+            }
+
+            _isReconnecting = true;
+            _reconnectAttempts++;
+            var delayMs = (int)Math.Min(60_000, Math.Pow(2, _reconnectAttempts) * 1_000);
+
+            Console.WriteLine($"[PhoenixRealtimeService] ScheduleReconnect => in {delayMs}ms (attempt {_reconnectAttempts}/{MaxReconnectAttempts})");
             Task.Run(async () =>
             {
-                await Task.Delay(ReconnectInterval);
+                await Task.Delay(delayMs);
                 _isReconnecting = false;
                 await ConnectAsync();
             });

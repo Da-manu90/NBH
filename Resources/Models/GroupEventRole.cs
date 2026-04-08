@@ -36,5 +36,8 @@ namespace NBH.Resources.Models
 
         [JsonIgnore]
         public double FillPercentage => MaxSlots > 0 ? (double)ConfirmedCount / MaxSlots * 100.0 : 0;
+
+        [JsonIgnore]
+        public double RoleProgress => MaxSlots > 0 ? Math.Min(1.0, (double)ConfirmedCount / MaxSlots) : 0;
     }
 }

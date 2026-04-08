@@ -80,6 +80,12 @@ namespace NBH.Resources.ViewModels
         [ObservableProperty]
         private string qualifikationen;
 
+        [ObservableProperty]
+        private int entriesCreated;
+
+        [ObservableProperty]
+        private int entriesParticipated;
+
         private string _profileImageUrl = "profile_placeholder.png";
         public string ProfileImageUrl
         {
@@ -153,18 +159,41 @@ namespace NBH.Resources.ViewModels
             try
             {
                 // 1) User-Datensatz aus Supabase laden
-                var resp = await _supabaseClient
-                    .From<User>()
-                    .Where(u => u.Id == userGuid)
-                    .Get();
+                if (await TryLoadProfileSummaryAsync(userGuid))
+                {
+                    _logger.LogInformation("Benutzerprofil erfolgreich per RPC-Zusammenfassung geladen.");
+                    return;
+                }
 
-                var foundUser = resp.Models.FirstOrDefault();
+                var response = await _supabaseClient.Rpc("get_public_user_profile", new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                });
+
+                var foundUser = string.IsNullOrWhiteSpace(response?.Content)
+                    ? null
+                    : JsonConvert.DeserializeObject<PublicUserProfile>(response.Content);
                 if (foundUser == null)
                 {
                     _logger.LogInformation("LoadUserProfileAsync: Kein User-Datensatz gefunden.");
                     return;
                 }
 
+                ApplyUserProfile(
+                    foundUser.Username,
+                    foundUser.ProfileImageUrl,
+                    foundUser.Wohnort,
+                    foundUser.UeberMich,
+                    foundUser.Qualifikationen,
+                    foundUser.IsVerified);
+
+                EntriesCreated = 0;
+                EntriesParticipated = 0;
+                _logger.LogInformation("Benutzerprofil per Public-Profile-Fallback geladen => Starte Rating-Berechnung");
+                await CalculateDetailedRatingAsync(userGuid);
+                return;
+
+                #if false
                 // 2) Anzeige-Felder setzen
                 ProfileImageUrl = string.IsNullOrWhiteSpace(foundUser.ProfileImageUrl)
                     ? "profile_placeholder.png"
@@ -181,6 +210,7 @@ namespace NBH.Resources.ViewModels
                 // 3) Rating für diesen User berechnen
                 _logger.LogInformation("Benutzerprofil erfolgreich geladen => Starte Rating-Berechnung");
                 await CalculateDetailedRatingAsync(userGuid);
+                #endif
             }
             catch (Exception ex)
             {
@@ -188,33 +218,93 @@ namespace NBH.Resources.ViewModels
             }
         }
 
+        private async Task<bool> TryLoadProfileSummaryAsync(Guid userGuid)
+        {
+            try
+            {
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                };
+
+                var response = await _supabaseClient.Rpc("get_user_profile_summary", rpcParams);
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                {
+                    return false;
+                }
+
+                var summary = JsonConvert.DeserializeObject<UserProfileSummary>(response.Content);
+                if (summary?.User == null)
+                {
+                    return false;
+                }
+
+                ApplyUserProfile(
+                    summary.User.Username,
+                    summary.User.ProfileImageUrl,
+                    summary.User.Wohnort,
+                    summary.User.UeberMich,
+                    summary.User.Qualifikationen,
+                    summary.User.IsVerified);
+
+                FinalRating = Math.Round(summary.Rating?.FinalRating ?? 0.0, 2);
+                FinalRatingCount = summary.Rating?.TotalCount ?? 0;
+                EntriesCreated = summary.EntriesCreated;
+                EntriesParticipated = summary.EntriesParticipated;
+                UpdateStarsAction?.Invoke(FinalRating, FinalRatingCount);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "get_user_profile_summary nicht verfuegbar oder fehlgeschlagen, nutze Fallback.");
+                return false;
+            }
+        }
+
+        private void ApplyUserProfile(
+            string? username,
+            string? profileImagePath,
+            string? wohnort,
+            string? ueberMich,
+            string? qualifikationen,
+            bool isVerified)
+        {
+            ProfileImageUrl = string.IsNullOrWhiteSpace(profileImagePath)
+                ? "profile_placeholder.png"
+                : _supabaseClient.Storage
+                    .From(BucketName)
+                    .GetPublicUrl(profileImagePath);
+
+            Username = username ?? string.Empty;
+            Wohnort = wohnort ?? string.Empty;
+            UeberMich = ueberMich ?? string.Empty;
+            Qualifikationen = qualifikationen ?? string.Empty;
+            IsVerified = isVerified;
+        }
+
         // ----------------------------------------------------------------
-        // Rating direkt aus event_rating + chat_reviews berechnen
+        // Rating via bestehender Aggregat-RPC laden
         // ----------------------------------------------------------------
         private async Task CalculateDetailedRatingAsync(Guid userGuid)
         {
             try
             {
-                var userIdStr = userGuid.ToString();
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                };
 
-                var erResp = await _supabaseClient.From<EventRating>()
-                    .Filter("reviewed_id", Supabase.Postgrest.Constants.Operator.Equals, userIdStr)
-                    .Get();
+                var response = await _supabaseClient.Rpc("get_user_rating_stats", rpcParams);
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                {
+                    FinalRating = 0.0;
+                    FinalRatingCount = 0;
+                    return;
+                }
 
-                var crResp = await _supabaseClient.From<ChatReview>()
-                    .Filter("reviewed_id", Supabase.Postgrest.Constants.Operator.Equals, userIdStr)
-                    .Get();
-
-                var erScores = (erResp.Models ?? new List<EventRating>())
-                    .Select(r => (r.event_friendliness + r.description_accuracy + r.reliability) / 3.0);
-
-                var crScores = (crResp.Models ?? new List<ChatReview>())
-                    .Select(r => (r.friendliness + r.response_time + r.helpfulness) / 3.0);
-
-                var allScores = erScores.Concat(crScores).ToList();
-
-                FinalRating = allScores.Count > 0 ? Math.Round(allScores.Average(), 2) : 0.0;
-                FinalRatingCount = allScores.Count;
+                var stats = JsonConvert.DeserializeObject<RatingStats>(response.Content);
+                FinalRating = Math.Round(stats?.FinalRating ?? 0.0, 2);
+                FinalRatingCount = stats?.TotalCount ?? 0;
 
                 _logger.LogInformation($"Rating => {FinalRating:F2} ({FinalRatingCount} Bewertungen)");
                 UpdateStarsAction?.Invoke(FinalRating, FinalRatingCount);
@@ -309,6 +399,27 @@ namespace NBH.Resources.ViewModels
                 }
 
                 // 2) Prüfe, ob (user_id == currentUserId && partner_id == otherUserId)
+                var createChatRpcParams = new Dictionary<string, object>
+                {
+                    { "p_partner_id", otherUserGuid }
+                };
+
+                var createChatResponse = await _supabaseClient.Rpc("find_or_create_chat_safe", createChatRpcParams);
+                var existingOrNewChatId = string.IsNullOrWhiteSpace(createChatResponse?.Content)
+                    ? Guid.Empty
+                    : JsonConvert.DeserializeObject<Guid>(createChatResponse.Content);
+
+                if (existingOrNewChatId != Guid.Empty)
+                {
+                    _logger.LogInformation("Chat {ChatId} erfolgreich gefunden oder erstellt.", existingOrNewChatId);
+                    await Shell.Current.GoToAsync($"ChatPage?chatId={existingOrNewChatId}");
+                    return;
+                }
+
+                _logger.LogWarning("Konnte Chat nicht erstellen oder finden.");
+                return;
+
+#if false
                 var q1 = await _supabaseClient
                     .From<PublicChat>()
                     .Filter("user_id", Operator.Equals, currentUserIdStr)
@@ -361,6 +472,7 @@ namespace NBH.Resources.ViewModels
                 {
                     _logger.LogWarning($"Konnte Chat nicht erstellen => {insertResp.ResponseMessage?.StatusCode}");
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -385,7 +497,13 @@ namespace NBH.Resources.ViewModels
 
                 if (reason != null && reason != "Abbrechen")
                 {
-                    var success = await _moderationService.ReportUserAsync(Guid.Parse(userId), reason, null);
+                    if (!Guid.TryParse(userId, out var reportedUserId))
+                    {
+                        await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.ReportError);
+                        return;
+                    }
+
+                    var success = await _moderationService.ReportUserAsync(reportedUserId, reason, null);
                     if (success)
                         await ToastService.ShowSuccessAsync(UserFriendlyErrors.Messages.ReportSent);
                     else
@@ -394,7 +512,13 @@ namespace NBH.Resources.ViewModels
             }
             else if (action == "Nutzer blockieren" && !string.IsNullOrEmpty(userId))
             {
-                _moderationService.BlockUser(Guid.Parse(userId));
+                if (!Guid.TryParse(userId, out var blockedUserId))
+                {
+                    await ToastService.ShowErrorAsync("Nutzer-ID ungültig.");
+                    return;
+                }
+
+                _moderationService.BlockUser(blockedUserId);
                 await ToastService.ShowInfoAsync("Nutzer wurde blockiert.");
                 await Shell.Current.GoToAsync("..");
             }

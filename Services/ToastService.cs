@@ -1,5 +1,7 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
+using Mopups.Services;
+using NBH.Resources.Views;
 
 namespace NBH.Services
 {
@@ -14,23 +16,15 @@ namespace NBH.Services
     /// </summary>
     public static class ToastService
     {
+        private static readonly SemaphoreSlim _queue = new(1, 1);
+
         // --------------------------------------------------------
         // ERFOLG: Gruener Snackbar (3s sichtbar)
         // --------------------------------------------------------
         public static async Task ShowSuccessAsync(string message)
         {
-            var snackbar = Snackbar.Make(
-                message,
-                duration: TimeSpan.FromSeconds(3),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Color.FromArgb("#2E7D32"),
-                    TextColor = Colors.White,
-                    CornerRadius = 12,
-                    Font = Microsoft.Maui.Font.SystemFontOfSize(15),
-                    CharacterSpacing = 0.3
-                });
-            await snackbar.Show();
+            HapticFeedbackHelper.PerformSuccessFeedback();
+            await ShowBannerAsync(StatusBannerType.Success, message, TimeSpan.FromSeconds(5));
         }
 
         // --------------------------------------------------------
@@ -38,18 +32,8 @@ namespace NBH.Services
         // --------------------------------------------------------
         public static async Task ShowErrorAsync(string message)
         {
-            var snackbar = Snackbar.Make(
-                message,
-                duration: TimeSpan.FromSeconds(5),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Color.FromArgb("#C62828"),
-                    TextColor = Colors.White,
-                    CornerRadius = 12,
-                    Font = Microsoft.Maui.Font.SystemFontOfSize(15),
-                    CharacterSpacing = 0.3
-                });
-            await snackbar.Show();
+            HapticFeedbackHelper.PerformErrorFeedback();
+            await ShowBannerAsync(StatusBannerType.Error, message, TimeSpan.FromSeconds(7));
         }
 
         // --------------------------------------------------------
@@ -57,18 +41,8 @@ namespace NBH.Services
         // --------------------------------------------------------
         public static async Task ShowInfoAsync(string message)
         {
-            var snackbar = Snackbar.Make(
-                message,
-                duration: TimeSpan.FromSeconds(3),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Color.FromArgb("#4b4b4b"),
-                    TextColor = Colors.White,
-                    CornerRadius = 12,
-                    Font = Microsoft.Maui.Font.SystemFontOfSize(15),
-                    CharacterSpacing = 0.3
-                });
-            await snackbar.Show();
+            HapticFeedbackHelper.PerformClickFeedback();
+            await ShowBannerAsync(StatusBannerType.Info, message, TimeSpan.FromSeconds(5));
         }
 
         // --------------------------------------------------------
@@ -76,18 +50,8 @@ namespace NBH.Services
         // --------------------------------------------------------
         public static async Task ShowWarningAsync(string message)
         {
-            var snackbar = Snackbar.Make(
-                message,
-                duration: TimeSpan.FromSeconds(4),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Color.FromArgb("#E65100"),
-                    TextColor = Colors.White,
-                    CornerRadius = 12,
-                    Font = Microsoft.Maui.Font.SystemFontOfSize(15),
-                    CharacterSpacing = 0.3
-                });
-            await snackbar.Show();
+            HapticFeedbackHelper.PerformWarningFeedback();
+            await ShowBannerAsync(StatusBannerType.Warning, message, TimeSpan.FromSeconds(6));
         }
 
         // --------------------------------------------------------
@@ -111,6 +75,63 @@ namespace NBH.Services
                     CornerRadius = 12,
                     Font = Microsoft.Maui.Font.SystemFontOfSize(15),
                 });
+            await snackbar.Show();
+        }
+
+        private static async Task ShowBannerAsync(StatusBannerType type, string message, TimeSpan duration)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            await _queue.WaitAsync();
+            try
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    try
+                    {
+                        var popup = new StatusBannerPopup(type, message, duration);
+                        await MopupService.Instance.PushAsync(popup);
+                        await popup.WaitForDismissalAsync();
+                    }
+                    catch
+                    {
+                        await ShowSnackbarFallbackAsync(type, message, duration);
+                    }
+                });
+            }
+            finally
+            {
+                _queue.Release();
+            }
+        }
+
+        private static async Task ShowSnackbarFallbackAsync(StatusBannerType type, string message, TimeSpan duration)
+        {
+            var background = type switch
+            {
+                StatusBannerType.Success => Color.FromArgb("#1FA34A"),
+                StatusBannerType.Warning => Color.FromArgb("#F97316"),
+                StatusBannerType.Error => Color.FromArgb("#D92D20"),
+                _ => Color.FromArgb("#4B4B4B")
+            };
+
+            var snackbar = Snackbar.Make(
+                message,
+                actionButtonText: "OK",
+                action: () => { },
+                duration: duration,
+                visualOptions: new SnackbarOptions
+                {
+                    BackgroundColor = background,
+                    TextColor = Colors.White,
+                    CornerRadius = 12,
+                    Font = Microsoft.Maui.Font.SystemFontOfSize(15),
+                    CharacterSpacing = 0.3
+                });
+
             await snackbar.Show();
         }
     }

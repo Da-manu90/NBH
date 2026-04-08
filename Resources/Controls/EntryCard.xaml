@@ -10,22 +10,18 @@
     xmlns:ff="clr-namespace:FFImageLoading.Maui;assembly=FFImageLoading.Maui"
     x:Class="NBH.Resources.Controls.EntryCard"
     x:DataType="models:EntryItem"
-    Padding="16,6">
+    Padding="16,8">
 
-    <ContentView.Resources>
-        <toolkit:IsStringNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
-    </ContentView.Resources>
-
-    <Border
-        x:Name="CardRoot"
-        BackgroundColor="White"
-        StrokeThickness="0"
-        Padding="0">
+    <Border x:Name="CardRoot"
+            BackgroundColor="#F8FFFD"
+            Stroke="#12000000"
+            StrokeThickness="1"
+            Padding="0">
         <Border.StrokeShape>
-            <RoundRectangle CornerRadius="20"/>
+            <RoundRectangle CornerRadius="18"/>
         </Border.StrokeShape>
         <Border.Shadow>
-            <Shadow Brush="Black" Opacity="0.08" Radius="16" Offset="0,4"/>
+            <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
         </Border.Shadow>
         <Border.GestureRecognizers>
             <TapGestureRecognizer Tapped="OnCardTapped"/>
@@ -36,21 +32,36 @@
             <!-- BILD-VORSCHAU (LINKS) -->
             <Border Grid.Column="0"
                     StrokeThickness="0"
-                    WidthRequest="80"
-                    HeightRequest="80"
-                    Margin="10,10,0,10"
+                    WidthRequest="84"
+                    HeightRequest="84"
+                    Margin="12,12,0,12"
                     VerticalOptions="Center">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12"/>
+                    <RoundRectangle CornerRadius="14"/>
                 </Border.StrokeShape>
-                <!-- Bild wenn vorhanden -->
-                <ff:CachedImage Source="{Binding event_image_url}"
-                                Aspect="AspectFill"
-                                IsVisible="{Binding event_image_url, Converter={StaticResource IsNotNullOrEmptyConverter}}"
-                                CacheDuration="7"
-                                LoadingPlaceholder="placeholder_event.png"
-                                ErrorPlaceholder="placeholder_event.png"
-                                DownsampleToViewSize="True"/>
+                <Grid>
+                    <Image Source="placeholder_event.png"
+                           Aspect="AspectFill"/>
+                    <ff:CachedImage Source="{Binding event_image_url}"
+                                    Aspect="AspectFill"
+                                    CacheDuration="7"
+                                    LoadingPlaceholder="placeholder_event.png"
+                                    ErrorPlaceholder="placeholder_event.png"
+                                    DownsampleToViewSize="True">
+                        <ff:CachedImage.Triggers>
+                            <DataTrigger TargetType="ff:CachedImage"
+                                         Binding="{Binding event_image_url}"
+                                         Value="">
+                                <Setter Property="IsVisible" Value="False"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="ff:CachedImage"
+                                         Binding="{Binding event_image_url}"
+                                         Value="{x:Null}">
+                                <Setter Property="IsVisible" Value="False"/>
+                            </DataTrigger>
+                        </ff:CachedImage.Triggers>
+                    </ff:CachedImage>
+                </Grid>
             </Border>
 
             <!-- AKZENT-STREIFEN (MITTE als Trennlinie) -->
@@ -60,20 +71,18 @@
                 BackgroundColor="#00897b"/>
 
             <!-- KARTEN-INHALT (RECHTS) -->
-            <VerticalStackLayout
-                Grid.Column="2"
-                Padding="16,14"
-                Spacing="6">
+            <VerticalStackLayout Grid.Column="2"
+                                 Padding="16,12"
+                                 Spacing="8">
 
                 <!-- Obere Zeile: Kategorie-Chip + Datum -->
-                <Grid ColumnDefinitions="*,Auto">
+                <Grid ColumnDefinitions="Auto,8,Auto,*,Auto">
 
                     <!-- Chip: Anfrage oder Angebot -->
-                    <Border
-                        Grid.Column="0"
-                        HorizontalOptions="Start"
-                        Padding="10,4"
-                        StrokeThickness="0">
+                    <Border Grid.Column="0"
+                            HorizontalOptions="Start"
+                            Padding="10,4"
+                            StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="10"/>
                         </Border.StrokeShape>
@@ -91,19 +100,41 @@
                             TextColor="#00897b"/>
                     </Border>
 
-                    <!-- Datum -->
-                    <Label
-                        Grid.Column="1"
-                        Text="{Binding created_date, StringFormat='{0:dd.MM.yy}'}"
-                        FontSize="11"
-                        TextColor="#AAAAAA"
-                        VerticalOptions="Center"/>
+                    <!-- Event type -->
+                    <Border Grid.Column="2"
+                            HorizontalOptions="Start"
+                            Padding="10,4"
+                            StrokeThickness="0"
+                            BackgroundColor="#EEF3FF">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Label Text="{Binding event_type}"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="#2E4A8A"/>
+                    </Border>
+
+                    <!-- CTA chip -->
+                    <Border Grid.Column="4"
+                            HorizontalOptions="End"
+                            Padding="10,4"
+                            StrokeThickness="0"
+                            BackgroundColor="#00d2a8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Label Text="Details"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="White"/>
+                    </Border>
                 </Grid>
 
                 <!-- Titel -->
                 <Label
                     Text="{Binding title}"
-                    FontSize="17"
+                    FontSize="16"
                     FontAttributes="Bold"
                     TextColor="#1A1A1A"
                     LineBreakMode="TailTruncation"
@@ -112,23 +143,27 @@
                 <!-- Beschreibung -->
                 <Label
                     Text="{Binding description}"
-                    FontSize="14"
-                    TextColor="#666666"
+                    FontSize="13"
+                    TextColor="#5A6663"
                     LineBreakMode="TailTruncation"
                     MaxLines="2"/>
 
-                <!-- Untere Zeile: Standort -->
-                <HorizontalStackLayout Spacing="4" Margin="0,2,0,0">
-                    <Label
-                        Text="📍"
-                        FontSize="12"
-                        VerticalOptions="Center"/>
-                    <Label
-                        Text="{Binding location, FallbackValue='Kein Standort'}"
-                        FontSize="12"
-                        TextColor="#999999"
-                        VerticalOptions="Center"/>
-                </HorizontalStackLayout>
+                <!-- Untere Zeile: Metadata -->
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Margin="0,2,0,0">
+                    <Label Grid.Column="0"
+                           Text="{Binding location, StringFormat='📍 {0}'}"
+                           FontSize="11"
+                           TextColor="#7A8784"
+                           LineBreakMode="TailTruncation"/>
+                    <Label Grid.Column="1"
+                           Text="{Binding created_date, StringFormat='{0:dd.MM}'}"
+                           FontSize="11"
+                           TextColor="#7A8784"/>
+                    <Label Grid.Column="2"
+                           Text="{Binding max_participants, StringFormat='👥 {0}'}"
+                           FontSize="11"
+                           TextColor="#7A8784"/>
+                </Grid>
 
             </VerticalStackLayout>
 

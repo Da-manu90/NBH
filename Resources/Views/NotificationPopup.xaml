@@ -4,16 +4,15 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:mopup="clr-namespace:Mopups.Pages;assembly=Mopups"
-    xmlns:viewmodels="clr-namespace:NBH.Resources.ViewModels"
     xmlns:models="clr-namespace:NBH.Resources.Models"
-    BackgroundColor="#80000000"
-    HasSystemPadding="True"
+    BackgroundColor="#99000000"
+    HasSystemPadding="False"
     CloseWhenBackgroundIsClicked="True">
 
-    <Frame CornerRadius="30"
+    <Frame CornerRadius="28"
            Padding="5"
            BorderColor="White"
-           BackgroundColor="#80d4ff"
+           BackgroundColor="#F1FAFF"
            HasShadow="False"
            HorizontalOptions="Center"
            VerticalOptions="Center"
@@ -21,8 +20,6 @@
            MaximumHeightRequest="600">
 
         <VerticalStackLayout Spacing="10">
-
-            <!-- Überschrift -->
             <Frame CornerRadius="30" Padding="0" BorderColor="White" HasShadow="False">
                 <Frame.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -49,54 +46,73 @@
                 </Grid>
             </Frame>
 
-            <ScrollView VerticalOptions="FillAndExpand">
-                <CollectionView x:Name="NotificationCollectionView"
-                                ItemsSource="{Binding Notifications}"
-                                EmptyView="Keine Benachrichtigungen vorhanden.">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:NotificationModel">
-                            <Frame CornerRadius="15"
-                                   BackgroundColor="#e6f7ff"
-                                   Padding="10"
-                                   HeightRequest="75"
-                                   Margin="5"
-                                   HasShadow="True">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <Label Text="{Binding Message}"
-                                           Grid.Column="0"
-                                           FontSize="15"
-                                           TextColor="Black"
-                                           VerticalOptions="Center"/>
+            <CollectionView x:Name="NotificationCollectionView"
+                            ItemsSource="{Binding Notifications}"
+                            VerticalOptions="FillAndExpand"
+                            SelectionMode="None"
+                            ItemSizingStrategy="MeasureFirstItem"
+                            EmptyView="Keine Benachrichtigungen vorhanden.">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:NotificationModel">
+                        <Frame CornerRadius="15"
+                               BackgroundColor="#e6f7ff"
+                               Padding="10"
+                               Margin="5"
+                               HasShadow="False">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.OpenNotificationCommand, Source={x:Reference NotificationCollectionView}}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                <Image Grid.Column="0"
+                                       Source="notification_unread.png"
+                                       WidthRequest="18"
+                                       HeightRequest="18"
+                                       VerticalOptions="Start"
+                                       Margin="0,2,0,0">
+                                    <Image.Triggers>
+                                        <DataTrigger TargetType="Image" Binding="{Binding Read}" Value="True">
+                                            <Setter Property="Source" Value="notification_read.png"/>
+                                        </DataTrigger>
+                                    </Image.Triggers>
+                                </Image>
 
-                                    <Frame Grid.Column="1"
-                                           Padding="5"
-                                           BackgroundColor="Transparent"
-                                           CornerRadius="15"
-                                           HorizontalOptions="End"
-                                           IsVisible="{Binding HasRatingButton}">
-                                        <Frame.Background>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#9cd9ff" Offset="0.0" />
-                                                <GradientStop Color="#006eb1" Offset="1.0" />
-                                            </LinearGradientBrush>
-                                        </Frame.Background>
-                                        <Label Text="Bewerten"
-                                               FontSize="12"
-                                               TextColor="White"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center"/>
-                                        <Frame.GestureRecognizers>
-                                            <TapGestureRecognizer
-                                                Command="{Binding BindingContext.RatingCommand, Source={x:Reference NotificationCollectionView}}"
-                                                CommandParameter="{Binding .}" />
-                                        </Frame.GestureRecognizers>
-                                    </Frame>
-                                </Grid>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </ScrollView>
+                                <Label Text="{Binding Message}"
+                                       Grid.Column="1"
+                                       FontSize="14"
+                                       TextColor="Black"
+                                       VerticalOptions="Center"
+                                       MaxLines="2"
+                                       LineBreakMode="TailTruncation">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Read}" Value="False">
+                                            <Setter Property="FontAttributes" Value="Bold"/>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Read}" Value="True">
+                                            <Setter Property="FontAttributes" Value="None"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+
+                                <Border Grid.Column="2"
+                                        BackgroundColor="#CFEAFF"
+                                        Padding="8,3"
+                                        StrokeThickness="0"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10"/>
+                                    </Border.StrokeShape>
+                                    <Label Text="Details ›"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="#005B91"/>
+                                </Border>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
             <Frame CornerRadius="15"
                    Padding="10"
@@ -104,8 +120,7 @@
                    HasShadow="True"
                    HorizontalOptions="Center"
                    VerticalOptions="Center">
-
-            <Frame.Background>
+                <Frame.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                         <GradientStop Color="#9cd9ff" Offset="0.0" />
                         <GradientStop Color="#006eb1" Offset="1.0" />
@@ -113,15 +128,14 @@
                 </Frame.Background>
 
                 <Label Text="Schließen"
-           FontSize="15"
-           TextColor="White"
-           HorizontalOptions="Center"
-           VerticalOptions="Center"/>
+                       FontSize="15"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
                 <Frame.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnCloseButtonTapped" />
                 </Frame.GestureRecognizers>
             </Frame>
-
         </VerticalStackLayout>
     </Frame>
 </mopup:PopupPage>

@@ -1,6 +1,5 @@
 ﻿using Supabase.Postgrest.Models;
 using System;
-using System.Text.Json.Serialization;
 using Supabase.Postgrest.Attributes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -29,23 +28,39 @@ namespace NBH.Resources.Models
         public bool Read { get; set; }
 
         [Column("action_data")]
-        public string ActionData { get; set; }
+        [JsonConverter(typeof(FlexibleJsonStringConverter))]
+        public string? ActionData { get; set; }
+
+        [JsonIgnore]
+        public JObject? ActionDataObject
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(ActionData))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return JObject.Parse(ActionData);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
 
         [Newtonsoft.Json.JsonIgnore]
         public bool HasRatingButton
         {
             get
             {
-                if (!string.IsNullOrEmpty(ActionData))
-                {
-                    try
-                    {
-                        var jObj = Newtonsoft.Json.Linq.JObject.Parse(ActionData);
-                        return jObj["hasRatingButton"]?.Value<bool>() ?? false;
-                    }
-                    catch { }
-                }
-                return false;
+                var jObj = ActionDataObject;
+                return jObj?["hasRatingButton"]?.Value<bool>()
+                    ?? jObj?["HasRatingButton"]?.Value<bool>()
+                    ?? false;
             }
         }
     }

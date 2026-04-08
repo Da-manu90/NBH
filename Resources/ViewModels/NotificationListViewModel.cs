@@ -3,13 +3,13 @@ using Microsoft.Extensions.Logging;
 using NBH.Resources.Models;
 using NBH.Resources.Controls;
 using NBH.Services;
-using Newtonsoft.Json.Linq;
 using Mopups.Services;
 using Supabase;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
+using System;
 using System.Windows.Input;
-using static Supabase.Postgrest.Constants;
 
 namespace NBH.Resources.ViewModels
 {
@@ -25,6 +25,7 @@ namespace NBH.Resources.ViewModels
 
         public ICommand RefreshCommand { get; }
         public ICommand RatingCommand { get; }
+        public ICommand OpenNotificationCommand { get; }
 
         public NotificationListViewModel(
             NotificationService notificationService, // <-- NEU
@@ -39,29 +40,14 @@ namespace NBH.Resources.ViewModels
 
             RefreshCommand = new AsyncRelayCommand(LoadNotificationsFromDatabaseAsync);
             RatingCommand = new AsyncRelayCommand<NotificationModel>(OnRatingAsync);
+            OpenNotificationCommand = new AsyncRelayCommand<NotificationModel>(OnNotificationTappedAsync);
         }
 
         private async Task LoadNotificationsFromDatabaseAsync()
         {
             try
             {
-                var currentUserId = _supabaseClient.Auth.CurrentUser?.Id;
-                if (string.IsNullOrEmpty(currentUserId))
-                    return;
-
-                var response = await _supabaseClient
-                    .From<NotificationModel>()
-                    .Filter("user_id", Operator.Equals, currentUserId)
-                    .Order(order => order.CreatedAt, Ordering.Descending)
-                    .Get();
-
-                Notifications.Clear();
-                if (response?.Models != null)
-                {
-                    foreach (var item in response.Models)
-                        Notifications.Add(item);
-                }
-
+                await _notificationService.ReloadForPopupAsync(unreadOnly: false);
                 Debug.WriteLine($"[NotificationService] Notifications geladen: {Notifications.Count}");
             }
             catch (Exception ex)
@@ -70,25 +56,129 @@ namespace NBH.Resources.ViewModels
             }
         }
 
-        // "Bewertung abgeben"-Button
-        private async Task OnRatingAsync(NotificationModel notif)
+        // Notification-Aktion
+        private async Task OnRatingAsync(NotificationModel? notif)
         {
-            if (!string.IsNullOrEmpty(notif.ActionData))
+            if (notif == null)
             {
-                var jObj = JObject.Parse(notif.ActionData);
-                var entryId = jObj["event_id"]?.Value<string>();
+                return;
+            }
+
+            var jObj = notif.ActionDataObject;
+            if (jObj != null)
+            {
+                var chatId =
+                    jObj["chat_id"]?.ToString()
+                    ?? jObj["conversation_id"]?.ToString()
+                    ?? jObj["thread_id"]?.ToString();
+
+                if (!string.IsNullOrWhiteSpace(chatId))
+                {
+                    var encodedChatId = Uri.EscapeDataString(chatId);
+                    // Navigate to ChatTab first, then push ChatPage
+                    await NavigateFromPopupAsync(
+                        Routes.ChatView,
+                        $"{nameof(ChatPage)}?chatId={encodedChatId}");
+                    return;
+                }
+
+                var entryId = jObj?["event_id"]?.ToString()
+                    ?? jObj?["entry_id"]?.ToString();
 
                 if (!string.IsNullOrEmpty(entryId))
                 {
-                    await Shell.Current.GoToAsync($"DetailPage?EntryId={entryId}");
-                    // Popup schließen:
-                    await MopupService.Instance.PopAsync();
+                    // Navigate to ProfileTab first, then push DetailPage
+                    await NavigateFromPopupAsync(
+                        Routes.ProfilePage,
+                        $"{nameof(DetailPage)}?EntryId={Uri.EscapeDataString(entryId)}");
                     return;
                 }
             }
 
             // Fallback
             await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.EventLoadError);
+        }
+
+        private async Task OnNotificationTappedAsync(NotificationModel? notif)
+        {
+            if (notif == null)
+            {
+                return;
+            }
+
+            await MarkNotificationAsReadAsync(notif);
+            await OnRatingAsync(notif);
+        }
+
+        private static async Task NavigateFromPopupAsync(string tabRoute, string? pushRoute = null)
+        {
+            try
+            {
+                if (MopupService.Instance.PopupStack.Any())
+                {
+                    await MopupService.Instance.PopAsync();
+                }
+            }
+            catch
+            {
+                // Ignore popup close errors, still attempt navigation.
+            }
+
+            // Small delay to let popup dismissal complete before Shell navigation
+            await Task.Delay(150);
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    await Shell.Current.GoToAsync(tabRoute);
+
+                    if (!string.IsNullOrWhiteSpace(pushRoute))
+                    {
+                        // Small delay to let tab switch settle
+                        await Task.Delay(100);
+                        await Shell.Current.GoToAsync(pushRoute);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[NotificationNav] Fehler: {ex.Message}");
+                    try
+                    {
+                        await Shell.Current.GoToAsync(Routes.ChatView);
+                    }
+                    catch { }
+                }
+            });
+        }
+
+        private async Task MarkNotificationAsReadAsync(NotificationModel notif)
+        {
+            try
+            {
+                if (notif.Read)
+                {
+                    return;
+                }
+
+                var currentUserId = _supabaseClient.Auth.CurrentUser?.Id;
+                if (string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    return;
+                }
+
+                await _supabaseClient.From<NotificationModel>()
+                    .Where(n => n.Id == notif.Id)
+                    .Set(n => n.Read, true)
+                    .Update();
+
+                notif.Read = true;
+                _notificationService.RaiseNotificationsUpdated();
+            }
+            catch
+            {
+                // no-op, navigation should still work
+            }
         }
 
         public async Task MarkAllAsReadAsync()
@@ -99,45 +189,22 @@ namespace NBH.Resources.ViewModels
                 if (string.IsNullOrEmpty(currentUserId))
                     return;
 
-                // 1) Zuerst alle "read=false" Notifs des Users aus DB laden
-                var readFalse = await _supabaseClient
-                    .From<NotificationModel>()
-                    .Filter("user_id", Operator.Equals, currentUserId)
-                    .Filter("read", Operator.Equals, "false")
-                    .Get();
+                var response = await _supabaseClient.Rpc("mark_notifications_read_self", new Dictionary<string, object>());
+                var updatedCount = string.IsNullOrWhiteSpace(response?.Content)
+                    ? 0
+                    : Newtonsoft.Json.JsonConvert.DeserializeObject<int>(response.Content);
 
-                if (readFalse?.Models == null || readFalse.Models.Count == 0)
+                if (updatedCount == 0)
                 {
                     Debug.WriteLine("[MarkAllAsReadAsync] Keine ungelesenen Benachrichtigungen gefunden.");
                     return;
                 }
 
-                // 2) Jeden Datensatz einzeln aktualisieren:
-                //    Wir setzen `notif.Read = true` und rufen dann .Update(...) 
-                //    mit dem einzelnen NotificationModel auf.
-                foreach (var notif in readFalse.Models)
-                {
-                    notif.Read = true;
+                foreach (var local in Notifications.Where(n => !n.Read))
+                    local.Read = true;
 
-                    // Achtung: Bei .Update(model) muss Supabase wissen, 
-                    //         welches Feld der Primary Key ist (z.B. "Id").
-                    //         Sonst klappt die Zuordnung in der DB nicht.
-                    await _supabaseClient
-                        .From<NotificationModel>()
-                        .Update(notif);
-                }
-
-                // 3) Lokal in deinem ObservableCollection-Cache (Notifications) 
-                //    ebenfalls alle betroffenen auf Read=true setzen – 
-                //    damit das UI sofort den geänderten Status anzeigt.
-                foreach (var updatedNotif in readFalse.Models)
-                {
-                    var local = Notifications.FirstOrDefault(n => n.Id == updatedNotif.Id);
-                    if (local != null)
-                        local.Read = true;
-                }
                 _notificationService.RaiseNotificationsUpdated();
-                Debug.WriteLine($"[MarkAllAsReadAsync] {readFalse.Models.Count} Benachrichtigungen einzeln auf 'read=true' gesetzt.");
+                Debug.WriteLine($"[MarkAllAsReadAsync] {updatedCount} Benachrichtigungen via RPC auf 'read=true' gesetzt.");
             }
             catch (Exception ex)
             {

@@ -31,9 +31,15 @@ namespace NBH.Services
                 var currentUserId = _authService.GetCurrentUserId();
                 if (string.IsNullOrEmpty(currentUserId)) return false;
 
+                if (!Guid.TryParse(currentUserId, out var reporterId))
+                {
+                    _logger.LogWarning("ReportUserAsync: Ungueltige Reporter-ID '{ReporterId}'", currentUserId);
+                    return false;
+                }
+
                 var report = new Report
                 {
-                    ReporterId = Guid.Parse(currentUserId),
+                    ReporterId = reporterId,
                     ReportedUserId = reportedUserId,
                     Reason = reason,
                     Description = description,
@@ -62,9 +68,15 @@ namespace NBH.Services
                 var currentUserId = _authService.GetCurrentUserId();
                 if (string.IsNullOrEmpty(currentUserId)) return false;
 
+                if (!Guid.TryParse(currentUserId, out var reporterId))
+                {
+                    _logger.LogWarning("ReportEntryAsync: Ungueltige Reporter-ID '{ReporterId}'", currentUserId);
+                    return false;
+                }
+
                 var report = new Report
                 {
-                    ReporterId = Guid.Parse(currentUserId),
+                    ReporterId = reporterId,
                     ReportedEntryId = reportedEntryId,
                     Reason = reason,
                     Description = description,

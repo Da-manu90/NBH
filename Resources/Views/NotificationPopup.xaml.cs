@@ -1,10 +1,6 @@
 using Mopups.Pages;
 using Mopups.Services;
-using NBH.Services;
-using NBH.Resources.Models;
 using NBH.Resources.ViewModels;
-using System.Windows.Input;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace NBH.Resources.Views
@@ -21,17 +17,18 @@ namespace NBH.Resources.Views
             Debug.WriteLine($"[NotificationPopup] BindingContext gesetzt. Notifications Count: {vm.Notifications.Count}");
         }
 
-        private void OnCloseButtonTapped(object sender, EventArgs e)
+        private async void OnCloseButtonTapped(object sender, EventArgs e)
         {
-            MopupService.Instance.PopAsync();
+            await MopupService.Instance.PopAsync();
         }
         
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
-            // Alle ungelesenen auf read=true
-            await _viewModel.MarkAllAsReadAsync();
+            if (_viewModel.RefreshCommand.CanExecute(null))
+            {
+                _viewModel.RefreshCommand.Execute(null);
+            }
         }
 
     }

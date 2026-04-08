@@ -13,12 +13,12 @@ namespace NBH
 {
     public partial class SplashPage : ContentPage
     {
-        private readonly AuthService _authService;
+        private readonly AppSessionFlowService _appSessionFlowService;
 
-        public SplashPage()
+        public SplashPage(AppSessionFlowService appSessionFlowService)
         {
             InitializeComponent();
-            _authService = App.Services.GetRequiredService<AuthService>();
+            _appSessionFlowService = appSessionFlowService;
         }
 
         protected override async void OnAppearing()
@@ -27,13 +27,14 @@ namespace NBH
 
             try
             {
+                var startupPreparationTask = _appSessionFlowService.PrepareStartupAsync();
                 await RunLogoAnimationAsync();
-                await RunSessionCheckAsync();
+                await RunSessionCheckAsync(startupPreparationTask);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[SplashPage] Fehler: {ex.Message}");
-                await RunSessionCheckAsync();
+                await RunSessionCheckAsync(null);
             }
         }
 
@@ -131,27 +132,26 @@ namespace NBH
         // ----------------------------------------------------------------
         // Session prüfen und navigieren
         // ----------------------------------------------------------------
-        private async Task RunSessionCheckAsync()
+        private async Task RunSessionCheckAsync(Task<bool>? startupPreparationTask)
         {
             // Lade-Label ausblenden
             await LoadingLabel.FadeTo(0, 200, Easing.CubicIn);
 
-            bool sessionValid = await _authService.EnsureSessionValidAsync();
+            bool sessionValid = startupPreparationTask != null
+                ? await startupPreparationTask
+                : await _appSessionFlowService.PrepareStartupAsync();
 
-            Application.Current.MainPage = MauiProgram.Services.GetRequiredService<AppShell>();
+            sessionValid = await _appSessionFlowService.CompleteStartupAsync(
+                sessionValid,
+                navigateToLastPage: false,
+                showSessionExpiredToast: true);
 
-            if (sessionValid)
-            {
-                await Shell.Current.GoToAsync("//MainTabs/ProfileTab/ProfilePage");
-            }
-            else
+            if (!sessionValid)
             {
 #if IOS
                 iOSHapticFeedback.TriggerHeavyImpact();
 #endif
                 HapticFeedback.Perform(HapticFeedbackType.Click);
-                await Shell.Current.GoToAsync("//LoginPage");
-                await ToastService.ShowInfoAsync(UserFriendlyErrors.Messages.SessionExpired);
             }
         }
     }

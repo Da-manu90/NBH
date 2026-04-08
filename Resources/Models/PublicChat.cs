@@ -59,5 +59,15 @@ namespace NBH.Resources.Models
         // NEU: Flag zum Bestimmen, ob Chat ungelesen ist
         [JsonProperty("is_unread")]
         public bool IsUnread { get; set; }
+
+        // Unified conversation fields (DM + Group)
+        [JsonProperty("conversation_type")]
+        public string ConversationType { get; set; } = "dm";
+
+        [JsonProperty("member_count")]
+        public int MemberCount { get; set; }
+
+        [JsonProperty("source_entry_id")]
+        public Guid? SourceEntryId { get; set; }
     }
 }

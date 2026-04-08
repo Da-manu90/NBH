@@ -27,5 +27,7 @@ namespace NBH
         public const string CropImage    = "CropImagePage";
         public const string CreateEvent  = "CreateEventPage";
         public const string SettingsPage = "SettingsPage";
+        public const string MyEventsPage = "MyEventsPage";
+        public const string EditEventPage = "EditEventPage";
     }
 }

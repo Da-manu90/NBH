@@ -15,7 +15,11 @@
 
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
+using NBH.Resources.Models;
+using NBH.Services;
+using Newtonsoft.Json;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 #if IOS
 using NBH.Platforms.iOS;
@@ -72,6 +76,9 @@ namespace NBH.Resources.Controls
         private int _currentIndex = -1;
         private bool _isAnimating = false;
         private bool _isLayoutReady = false;
+        private readonly Supabase.Client? _supabaseClient;
+        private readonly AuthService? _authService;
+        private readonly PhoenixRealtimeService? _phoenixRealtimeService;
 
         // Referenzen auf alle Icons, Labels und Glows (für Schleifen)
         private Image[] _icons;
@@ -112,6 +119,101 @@ namespace NBH.Resources.Controls
         public CustomTabBar()
         {
             InitializeComponent();
+
+            try
+            {
+                var serviceProvider = ((App)Application.Current!).GetServiceProvider();
+                _supabaseClient = serviceProvider.GetService(typeof(Supabase.Client)) as Supabase.Client;
+                _authService = serviceProvider.GetService(typeof(AuthService)) as AuthService;
+                _phoenixRealtimeService = serviceProvider.GetService(typeof(PhoenixRealtimeService)) as PhoenixRealtimeService;
+            }
+            catch
+            {
+                _supabaseClient = null;
+                _authService = null;
+                _phoenixRealtimeService = null;
+            }
+
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
+        }
+
+        private async void OnLoaded(object? sender, EventArgs e)
+        {
+            if (_phoenixRealtimeService != null)
+            {
+                _phoenixRealtimeService.PostgresChanged -= OnRealtimePostgresChanged;
+                _phoenixRealtimeService.PostgresChanged += OnRealtimePostgresChanged;
+            }
+
+            await RefreshUnreadChatBadgeAsync();
+        }
+
+        private void OnUnloaded(object? sender, EventArgs e)
+        {
+            if (_phoenixRealtimeService != null)
+            {
+                _phoenixRealtimeService.PostgresChanged -= OnRealtimePostgresChanged;
+            }
+        }
+
+        private async void OnRealtimePostgresChanged(object? sender, PhoenixPostgresEvent e)
+        {
+            if (e.Table == "chat_messages" || e.Table == "conversation_messages")
+            {
+                if (!ShouldRefreshForIncomingMessage(e))
+                {
+                    return;
+                }
+
+                await RefreshUnreadChatBadgeAsync();
+                return;
+            }
+
+            if (e.Table == "chats" || e.Table == "conversations")
+            {
+                await RefreshUnreadChatBadgeAsync();
+            }
+        }
+
+        private bool ShouldRefreshForIncomingMessage(PhoenixPostgresEvent e)
+        {
+            if (_authService == null)
+            {
+                return true;
+            }
+
+            var me = _authService.GetCurrentUserId();
+            if (string.IsNullOrWhiteSpace(me))
+            {
+                return true;
+            }
+
+            var eventType = e.EventType?.ToUpperInvariant() ?? string.Empty;
+            if (eventType != "INSERT")
+            {
+                return true;
+            }
+
+            if (e.New == null || !TryGetRecordValue(e.New, "sender_id", out var senderId))
+            {
+                return true;
+            }
+
+            // Wichtig: Eigene gesendete Nachricht soll den "neu"-Badge nicht triggern.
+            return !string.Equals(senderId, me, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryGetRecordValue(System.Collections.Generic.Dictionary<string, object> record, string key, out string value)
+        {
+            value = string.Empty;
+            if (record == null || !record.TryGetValue(key, out var raw) || raw == null)
+            {
+                return false;
+            }
+
+            value = raw.ToString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
         }
 
         // ==========================================================
@@ -415,8 +517,13 @@ namespace NBH.Resources.Controls
         /// </summary>
         public void SetActiveTabWithoutNavigation(int index)
         {
-            if (index == _currentIndex) return;
+            if (index == _currentIndex)
+            {
+                _ = RefreshUnreadChatBadgeAsync();
+                return;
+            }
             SelectTabInternal(index, animate: _isLayoutReady);
+            _ = RefreshUnreadChatBadgeAsync();
         }
 
         /// <summary>
@@ -449,6 +556,87 @@ namespace NBH.Resources.Controls
                 SetActiveTabWithoutNavigation(3);
             else if (currentRoute.Contains("FAQPage") || currentRoute.Contains("FaqTab"))
                 SetActiveTabWithoutNavigation(4);
+        }
+
+        public async Task RefreshUnreadChatBadgeAsync()
+        {
+            try
+            {
+                if (_supabaseClient == null || _authService == null)
+                {
+                    return;
+                }
+
+                var userId = _authService.GetCurrentUserId();
+                if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var userGuid))
+                {
+                    ChatBadgeFrame.IsVisible = false;
+                    return;
+                }
+
+                var unreadCount = await TryGetUnreadConversationCountAsync(userGuid);
+                ChatBadgeLabel.Text = unreadCount > 99 ? "99+" : unreadCount.ToString();
+                ChatBadgeFrame.IsVisible = unreadCount > 0;
+            }
+            catch
+            {
+                ChatBadgeFrame.IsVisible = false;
+            }
+        }
+
+        private async Task<int> TryGetUnreadConversationCountAsync(Guid userGuid)
+        {
+            try
+            {
+                var response = await _supabaseClient!.Rpc("get_unread_conversation_count_self", new System.Collections.Generic.Dictionary<string, object>());
+                if (response?.ResponseMessage?.IsSuccessStatusCode == true && !string.IsNullOrWhiteSpace(response.Content))
+                {
+                    var content = response.Content.Trim();
+                    if (int.TryParse(content, out var count))
+                    {
+                        return count;
+                    }
+
+                    try
+                    {
+                        var token = Newtonsoft.Json.Linq.JToken.Parse(content);
+                        if (token.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
+                        {
+                            return token.ToObject<int>();
+                        }
+
+                        var countToken =
+                            token["count"] ??
+                            token["unread_count"] ??
+                            token["get_unread_conversation_count_self"];
+
+                        if (countToken != null && int.TryParse(countToken.ToString(), out var parsed))
+                        {
+                            return parsed;
+                        }
+                    }
+                    catch
+                    {
+                        // keep fallback
+                    }
+                }
+            }
+            catch
+            {
+                // fallback
+            }
+
+            var fallbackResponse = await _supabaseClient!.Rpc("get_user_chats_safe", new System.Collections.Generic.Dictionary<string, object>
+            {
+                { "p_user_id", userGuid }
+            });
+
+            var chats = string.IsNullOrWhiteSpace(fallbackResponse?.Content)
+                ? new System.Collections.Generic.List<ChatListRpcItem>()
+                : JsonConvert.DeserializeObject<System.Collections.Generic.List<ChatListRpcItem>>(fallbackResponse.Content)
+                  ?? new System.Collections.Generic.List<ChatListRpcItem>();
+
+            return chats.Count(x => x.IsUnread);
         }
     }
 }

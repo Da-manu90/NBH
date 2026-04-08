@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+             xmlns:models="clr-namespace:NBH.Resources.Models"
+             x:Class="NBH.MyEventsPage"
+             x:DataType="viewModels:MyEventsPageViewModel"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Border Grid.Row="0" Padding="16,20,16,10">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#00d2a8" Offset="0"/>
+                    <GradientStop Color="#00897b" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Label Text="‹"
+                       FontSize="28"
+                       TextColor="White"
+                       VerticalOptions="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnBackTapped"/>
+                    </Label.GestureRecognizers>
+                </Label>
+                <Label Grid.Column="1"
+                       Text="Meine Events"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10" Padding="16,10,16,6">
+            <Border Grid.Column="0" Padding="10,8" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+                <Border.Background>
+                    <SolidColorBrush Color="#E7F8F3"/>
+                </Border.Background>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ShowCreatedCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="Erstellt"
+                       HorizontalOptions="Center"
+                       TextColor="#00695C"
+                       FontAttributes="Bold"/>
+            </Border>
+
+            <Border Grid.Column="1" Padding="10,8" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+                <Border.Background>
+                    <SolidColorBrush Color="#EEF3FF"/>
+                </Border.Background>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ShowParticipatingCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="Teilnahmen"
+                       HorizontalOptions="Center"
+                       TextColor="#24397B"
+                       FontAttributes="Bold"/>
+            </Border>
+        </Grid>
+
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding VisibleEvents}"
+                        SelectionMode="None"
+                        Margin="10,0,10,10">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                    <Image Source="no_entries_illustration.svg" HeightRequest="110" Aspect="AspectFit"/>
+                    <Label Text="Keine Events in diesem Bereich vorhanden."
+                           FontSize="13"
+                           TextColor="#5A6663"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:EntryItem">
+                    <Border BackgroundColor="#F8FFFD"
+                            Stroke="#12000000"
+                            StrokeThickness="1"
+                            Margin="0,6"
+                            Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Opacity="0.08" Radius="8" Offset="0,3"/>
+                        </Border.Shadow>
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6">
+                            <Label Grid.Row="0"
+                                   Text="{Binding title}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#152320"/>
+                            <Border Grid.Row="0" Grid.Column="1"
+                                    BackgroundColor="#EAF5F2"
+                                    Padding="8,2"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10"/>
+                                </Border.StrokeShape>
+                                <Grid>
+                                    <Label Text="⋮"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#00695C"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:MyEventsPageViewModel}}, Path=OpenOptionsCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </Border>
+
+                            <Label Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   Text="{Binding description}"
+                                   FontSize="13"
+                                   TextColor="#596764"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation"/>
+
+                            <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding location, StringFormat='📍 {0}'}"
+                                       FontSize="11"
+                                       TextColor="#73807D"
+                                       LineBreakMode="TailTruncation"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding created_date, StringFormat='{0:dd.MM}'}"
+                                       FontSize="11"
+                                       TextColor="#73807D"/>
+                                <Border Grid.Column="2" BackgroundColor="#00d2a8" Padding="8,2" StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10"/>
+                                    </Border.StrokeShape>
+                                    <Label Text="Details"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="White">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:MyEventsPageViewModel}}, Path=OpenDetailCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

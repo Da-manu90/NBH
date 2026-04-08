@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Supabase;
 using NBH.Resources.Models;
 using NBH.Services;
+using Newtonsoft.Json;
 #if IOS
 using NBH.Platforms.iOS;
 #endif
@@ -20,6 +21,7 @@ namespace NBH.Resources.ViewModels
         private readonly Supabase.Client _client;
         private readonly ILogger<AddPageViewModel> _logger;
         private readonly AuthService _authService;
+        private readonly AppSessionFlowService _appSessionFlowService;
 
         // Anzahl EintrÃ¤ge pro Seite
         private const int ItemsPerPage = 10;
@@ -46,6 +48,9 @@ namespace NBH.Resources.ViewModels
         // Hauptliste (alle EintrÃ¤ge) und gefilterte/paginierte Liste fÃ¼rs UI
         public ObservableCollection<EntryItem> Entries { get; private set; } = new();
         public ObservableCollection<EntryItem> FilteredEntries { get; private set; } = new();
+        public ObservableCollection<EntryItem> FeaturedEntries { get; private set; } = new();
+        public bool HasFeaturedEntries => FeaturedEntries.Count > 0;
+        public bool ShowFeaturedSection => HasFeaturedEntries && IsFeaturedSectionExpanded;
 
         public ObservableCollection<string> Categories { get; private set; } = new() { "Anfrage", "Angebot" };
         public ObservableCollection<string> FilterOptions { get; private set; } = new() { "Alles", "Anfrage", "Angebot" };
@@ -128,6 +133,27 @@ namespace NBH.Resources.ViewModels
         public ICommand LastPageCommand { get; private set; }
 
         public ICommand NavigateToCreateCommand { get; private set; }
+        public ICommand ToggleFeaturedSectionCommand { get; private set; }
+
+        private bool _isFeaturedSectionExpanded = true;
+        public bool IsFeaturedSectionExpanded
+        {
+            get => _isFeaturedSectionExpanded;
+            set
+            {
+                if (_isFeaturedSectionExpanded == value)
+                {
+                    return;
+                }
+
+                _isFeaturedSectionExpanded = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ShowFeaturedSection));
+                OnPropertyChanged(nameof(FeaturedToggleText));
+            }
+        }
+
+        public string FeaturedToggleText => IsFeaturedSectionExpanded ? "Highlights ausblenden" : "Highlights anzeigen";
 
         private bool _isLoading;
         public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNotLoading)); } }
@@ -149,12 +175,17 @@ namespace NBH.Resources.ViewModels
         /// <param name="client">Supabase-Client</param>
         /// <param name="logger">Logger</param>
         /// <param name="authService">Auth-Service</param>
-        public AddPageViewModel(Supabase.Client client, ILogger<AddPageViewModel> logger, AuthService authService)
+        public AddPageViewModel(
+            Supabase.Client client,
+            ILogger<AddPageViewModel> logger,
+            AuthService authService,
+            AppSessionFlowService appSessionFlowService)
             : this()
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            _appSessionFlowService = appSessionFlowService ?? throw new ArgumentNullException(nameof(appSessionFlowService));
         }
 
         /// <summary>
@@ -172,6 +203,7 @@ namespace NBH.Resources.ViewModels
             FirstPageCommand = new Command(async () => await LoadEntriesFromDatabaseAsync(1), () => CurrentPage > 1);
             LastPageCommand = new Command(async () => await LoadEntriesFromDatabaseAsync(TotalPagesCount), () => CurrentPage < TotalPagesCount);
             NavigateToCreateCommand = new Command(async () => await Shell.Current.GoToAsync("CreateEventPage"));
+            ToggleFeaturedSectionCommand = new Command(() => IsFeaturedSectionExpanded = !IsFeaturedSectionExpanded);
         }
 
         // -----------------------------------------
@@ -184,7 +216,8 @@ namespace NBH.Resources.ViewModels
                 IsLoading = true;
                 if (!await _authService.EnsureSessionValidAsync())
                 {
-                    Application.Current.MainPage = new LoginPage();
+                    await _appSessionFlowService.NavigateToLoginAsync(
+                        UserFriendlyErrors.Messages.SessionExpired);
                     return;
                 }
 
@@ -202,31 +235,28 @@ namespace NBH.Resources.ViewModels
                     { "p_offset", skip }
                 };
 
-                var response = await _client.Rpc("get_entries_paged", rpcParams);
+                var response = await _client.Rpc("get_entries_paged_v2", rpcParams);
 
                 if (response != null && response.Content != null)
                 {
                     // Deserialisierung der RPC-Ergebnisse (JSON)
-                    var items = Newtonsoft.Json.JsonConvert.DeserializeObject<List<EntryItem>>(response.Content);
+                    var pageResponse = JsonConvert.DeserializeObject<EntriesPageRpcResponse>(response.Content);
+                    var items = pageResponse?.Entries ?? new List<EntryItem>();
+                    var total = Math.Max(pageResponse?.Total ?? 0, 0);
                     
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         FilteredEntries.Clear();
-                        if (items != null)
+                        foreach (var item in items)
                         {
-                            foreach (var item in items)
-                            {
-                                FilteredEntries.Add(item);
-                            }
+                            FilteredEntries.Add(item);
                         }
+                        RebuildFeaturedEntries();
                         UpdatePaginationButtons();
                         // Da wir nicht wissen wie viele Seiten es insgesamt gibt (auÃer wir machen einen Count-Call),
                         // schÃ¤tzen wir oder lassen den User einfach weiterblÃ¤ttern solange Ergebnisse kommen.
                         // Für NBH setzen wir TotalPagesCount fest auf CurrentPage + 1 wenn Ergebnisse kamen:
-                        if (items != null && items.Count == ItemsPerPage)
-                            _totalPagesCount = CurrentPage + 1;
-                        else
-                            _totalPagesCount = CurrentPage;
+                        _totalPagesCount = Math.Max(1, (int)Math.Ceiling(total / (double)ItemsPerPage));
                             
                         OnPropertyChanged(nameof(TotalPagesCount));
                         OnPropertyChanged(nameof(PageDisplay));
@@ -315,6 +345,57 @@ namespace NBH.Resources.ViewModels
             ((Command)PrevPageCommand).ChangeCanExecute();
             ((Command)FirstPageCommand).ChangeCanExecute();
             ((Command)LastPageCommand).ChangeCanExecute();
+        }
+
+        private void RebuildFeaturedEntries()
+        {
+            FeaturedEntries.Clear();
+            foreach (var item in FilteredEntries
+                .OrderByDescending(GetFeaturedScore)
+                .ThenByDescending(x => x.created_date)
+                .Take(5))
+            {
+                FeaturedEntries.Add(item);
+            }
+
+            OnPropertyChanged(nameof(HasFeaturedEntries));
+            OnPropertyChanged(nameof(ShowFeaturedSection));
+        }
+
+        private static double GetFeaturedScore(EntryItem item)
+        {
+            if (item == null)
+            {
+                return 0;
+            }
+
+            var score = 0.0;
+
+            // Priorisiere Events mit größerer erwarteter Nachfrage.
+            score += Math.Min(20, Math.Max(0, item.max_participants ?? 0) * 2);
+
+            if (string.Equals(item.event_type, "group", StringComparison.OrdinalIgnoreCase))
+            {
+                score += 8;
+            }
+
+            if (item.event_date.HasValue)
+            {
+                var daysToEvent = (item.event_date.Value.Date - DateTime.UtcNow.Date).TotalDays;
+                if (daysToEvent >= 0 && daysToEvent <= 14)
+                {
+                    score += 5;
+                }
+            }
+
+            // Recency nur als kleines Tie-Breaking, nicht als Hauptfaktor.
+            var ageDays = (DateTime.UtcNow - item.created_date).TotalDays;
+            if (ageDays <= 7)
+            {
+                score += 1;
+            }
+
+            return score;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

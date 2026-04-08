@@ -162,21 +162,33 @@ namespace NBH.Resources.ViewModels
         {
             System.Diagnostics.Debug.WriteLine("=== CreateEventAsync START ===");
 
+            if (IsBusy)
+                return;
+
             if (string.IsNullOrWhiteSpace(Title) || string.IsNullOrWhiteSpace(Location))
             {
                 await ToastService.ShowWarningAsync(UserFriendlyErrors.Messages.FillTitleAndLocation);
                 return;
             }
 
+            var normalizedRoles = Roles
+                .Select(r => new RoleInputModel
+                {
+                    RoleName = (r.RoleName ?? string.Empty).Trim(),
+                    MaxSlots = r.MaxSlots <= 0 ? 1 : r.MaxSlots
+                })
+                .Where(r => !string.IsNullOrWhiteSpace(r.RoleName))
+                .ToList();
+
             if (IsGroupEvent)
             {
-                if (Roles.Count == 0 && (MaxParticipants == null || MaxParticipants <= 0))
+                if (normalizedRoles.Count == 0 && (MaxParticipants == null || MaxParticipants <= 0))
                 {
                     await ToastService.ShowWarningAsync(UserFriendlyErrors.Messages.FillParticipants);
                     return;
                 }
 
-                if (Roles.Any(r => string.IsNullOrWhiteSpace(r.RoleName)))
+                if (Roles.Any(r => string.IsNullOrWhiteSpace(r.RoleName) && r.MaxSlots > 0))
                 {
                     await ToastService.ShowWarningAsync(UserFriendlyErrors.Messages.FillRoleNames);
                     return;
@@ -195,10 +207,10 @@ namespace NBH.Resources.ViewModels
             var userId = _client?.Auth.CurrentUser?.Id;
 
             // ✅ WICHTIG: echtes Array, KEIN String!
-            var rolesArray = (IsGroupEvent && Roles.Any())
-                ? Roles.Select(r => new Dictionary<string, object>
+            var rolesArray = (IsGroupEvent && normalizedRoles.Any())
+                ? normalizedRoles.Select(r => new Dictionary<string, object>
                 {
-        { "role_name", r.RoleName },
+        { "role_name", r.RoleName.Trim() },
         { "max_slots", r.MaxSlots }
                 }).ToList()
                 : new List<Dictionary<string, object>>();

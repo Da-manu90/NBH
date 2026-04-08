@@ -7,8 +7,23 @@ public static class HapticFeedbackHelper
         HapticFeedback.Default.Perform(HapticFeedbackType.Click);
     }
 
+    public static void PerformSuccessFeedback()
+    {
+        HapticFeedback.Default.Perform(HapticFeedbackType.Click);
+    }
+
+    public static void PerformWarningFeedback()
+    {
+        HapticFeedback.Default.Perform(HapticFeedbackType.LongPress);
+    }
+
     public static void PerformErrorFeedback()
     {
         HapticFeedback.Default.Perform(HapticFeedbackType.LongPress);
+    }
+
+    public static void PerformNotificationFeedback()
+    {
+        HapticFeedback.Default.Perform(HapticFeedbackType.Click);
     }
 }

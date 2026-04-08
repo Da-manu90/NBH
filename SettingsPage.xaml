@@ -3,53 +3,83 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
              xmlns:controls="clr-namespace:NBH.Resources.Controls"
+             xmlns:ff="clr-namespace:FFImageLoading.Maui;assembly=FFImageLoading.Maui"
              x:Class="NBH.SettingsPage"
-             Shell.NavBarIsVisible="False"
-             x:DataType="viewModels:SettingsPageViewModel">
+             x:DataType="viewModels:SettingsPageViewModel"
+             Shell.NavBarIsVisible="False">
 
     <Grid RowDefinitions="Auto,*">
-        <!-- Header -->
-        <Grid Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#15be9e, Dark=#0a4a3d}">
+        <Grid Padding="15,20,15,10"
+              BackgroundColor="{AppThemeBinding Light=#15be9e, Dark=#0a4a3d}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Button Text="â†" 
-                     Command="{Binding GoBackCommand}"
-                     WidthRequest="40" HeightRequest="40"
-                     VerticalOptions="Center"
-                     BackgroundColor="Transparent"
-                     TextColor="White"
-                     FontSize="24" />
-            <Label Grid.Column="1" Text="Einstellungen" 
-                   FontSize="22" FontAttributes="Bold" TextColor="White" 
-                   VerticalOptions="Center" Margin="15,0,0,0" />
+
+            <Button Text="←"
+                    Command="{Binding GoBackCommand}"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    VerticalOptions="Center"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    FontSize="24" />
+
+            <Label Grid.Column="1"
+                   Text="Einstellungen"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   Margin="15,0,0,0" />
         </Grid>
 
-        <!-- Main Content -->
         <ScrollView Grid.Row="1" Padding="15">
             <VerticalStackLayout Spacing="20">
 
-                <!-- User Info -->
-                <Border Padding="15" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                <Border Padding="15"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" />
+                    </Border.StrokeShape>
                     <Grid ColumnDefinitions="Auto,*">
-                        <Frame WidthRequest="50" HeightRequest="50" CornerRadius="25" BackgroundColor="#00897b" Padding="0" VerticalOptions="Center">
-                            <Label Text="ðŸ‘¤" HorizontalOptions="Center" VerticalOptions="Center" FontSize="20" />
-                        </Frame>
-                        <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
+                        <Grid WidthRequest="50" HeightRequest="50" VerticalOptions="Center">
+                            <!-- Fallback background with emoji -->
+                            <Border BackgroundColor="#00897b"
+                                    Padding="0"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="25"/>
+                                </Border.StrokeShape>
+                                <Label Text="👤"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       FontSize="20" />
+                            </Border>
+                            <!-- Real profile image overlaid on top -->
+                            <ff:CachedImage Source="{Binding ProfileImageUrl}"
+                                            WidthRequest="50"
+                                            HeightRequest="50"
+                                            Aspect="AspectFill">
+                                <ff:CachedImage.Clip>
+                                    <EllipseGeometry Center="25,25" RadiusX="25" RadiusY="25"/>
+                                </ff:CachedImage.Clip>
+                            </ff:CachedImage>
+                        </Grid>
+                        <VerticalStackLayout Grid.Column="1"
+                                             Margin="15,0,0,0"
+                                             VerticalOptions="Center">
                             <Label Text="{Binding CurrentUsername}" FontSize="18" FontAttributes="Bold" />
                             <Label Text="{Binding CurrentUserEmail}" FontSize="14" TextColor="Gray" />
-                            <Label Text="âœ“ Verifiziert" FontSize="12" TextColor="#00d2a8" IsVisible="{Binding IsVerified}" />
+                            <controls:VerifiedBadge IsVerified="{Binding IsVerified}" />
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
 
-                <!-- Benachrichtigungen -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="BENACHRICHTIGUNGEN" FontSize="12" TextColor="Gray" Margin="5,0,0,5" />
                     <Border Padding="10,0" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
                                 <Label Text="Push-Benachrichtigungen" VerticalOptions="Center" />
@@ -57,23 +87,22 @@
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
-                                <Label Text="E-Mail Benachrichtigungen" VerticalOptions="Center" />
+                                <Label Text="E-Mail-Benachrichtigungen" VerticalOptions="Center" />
                                 <Switch Grid.Column="1" IsToggled="{Binding EmailNotificationsEnabled}" OnColor="#00897b" />
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
-                                <Label Text="Neue Events in der NÃ¤he" VerticalOptions="Center" />
+                                <Label Text="Neue Events in der Nähe" VerticalOptions="Center" />
                                 <Switch Grid.Column="1" IsToggled="{Binding NearbyEventsEnabled}" OnColor="#00897b" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Erscheinungsbild -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="ERSCHEINUNGSBILD" FontSize="12" TextColor="Gray" Margin="5,0,0,5" />
                     <Border Padding="10,0" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
                                 <Label Text="Dark Mode" VerticalOptions="Center" />
@@ -83,18 +112,17 @@
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Datenschutz & Sicherheit -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="DATENSCHUTZ &amp; SICHERHEIT" FontSize="12" TextColor="Gray" Margin="5,0,0,5" />
                     <Border Padding="10,0" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding OpenPrivacyPolicyCommand}" />
                                 </Grid.GestureRecognizers>
-                                <Label Text="DatenschutzerklÃ¤rung" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Text="Datenschutzerklärung" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
@@ -102,29 +130,28 @@
                                     <TapGestureRecognizer Command="{Binding OpenTermsCommand}" />
                                 </Grid.GestureRecognizers>
                                 <Label Text="Nutzungsbedingungen" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
-                                <Label Text="Profil fÃ¼r andere sichtbar" VerticalOptions="Center" />
+                                <Label Text="Profil für andere sichtbar" VerticalOptions="Center" />
                                 <Switch Grid.Column="1" IsToggled="{Binding IsProfilePublic}" OnColor="#00897b" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Support & Feedback -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="SUPPORT &amp; FEEDBACK" FontSize="12" TextColor="Gray" Margin="5,0,0,5" />
                     <Border Padding="10,0" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding OpenFeedbackCommand}" />
                                 </Grid.GestureRecognizers>
                                 <Label Text="Feedback geben" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
@@ -132,7 +159,7 @@
                                     <TapGestureRecognizer Command="{Binding OpenAppStoreRatingCommand}" />
                                 </Grid.GestureRecognizers>
                                 <Label Text="App bewerten" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                             <BoxView HeightRequest="1" Color="{DynamicResource SeparatorColor}" />
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
@@ -140,55 +167,53 @@
                                     <TapGestureRecognizer Command="{Binding NavigateToFaqCommand}" />
                                 </Grid.GestureRecognizers>
                                 <Label Text="FAQ" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Account -->
                 <VerticalStackLayout Spacing="5">
                     <Label Text="ACCOUNT" FontSize="12" TextColor="Gray" Margin="5,0,0,5" />
                     <Border Padding="10,0" BackgroundColor="{AppThemeBinding Light=White, Dark=#1E2A28}">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="10"/></Border.StrokeShape>
+                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="*,Auto" Padding="10,14">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding ChangePasswordCommand}" />
                                 </Grid.GestureRecognizers>
-                                <Label Text="Passwort Ã¤ndern" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="â†’" VerticalOptions="Center" TextColor="Gray" />
+                                <Label Text="Passwort ändern" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="→" VerticalOptions="Center" TextColor="Gray" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Account löschen – roter Button ganz unten -->
                 <Border Margin="0,4,0,0" HeightRequest="50" StrokeThickness="0">
-                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
-                    <Border.Background><SolidColorBrush Color="#C62828"/></Border.Background>
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                    <Border.Background><SolidColorBrush Color="#C62828" /></Border.Background>
                     <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding DeleteAccountCommand}"/>
+                        <TapGestureRecognizer Command="{Binding DeleteAccountCommand}" />
                     </Border.GestureRecognizers>
                     <Label Text="Account löschen"
                            TextColor="White"
                            FontSize="15"
                            FontAttributes="Bold"
                            HorizontalOptions="Center"
-                           VerticalOptions="Center"/>
+                           VerticalOptions="Center" />
                 </Border>
 
-                <Label Text="{Binding AppVersion}" HorizontalOptions="Center" TextColor="Gray" FontSize="12" Margin="0,20,0,50" />
-
+                <Label Text="{Binding AppVersion}"
+                       HorizontalOptions="Center"
+                       TextColor="Gray"
+                       FontSize="12"
+                       Margin="0,20,0,50" />
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Loading Overlay – erscheint beim Account löschen -->
         <controls:LoadingOverlay x:Name="LoadingOverlay"
                                  Grid.RowSpan="2"
-                                 LoadingText="Account wird gelÃ¶scht..."
-                                 IsVisible="{Binding IsBusy}"/>
-
+                                 LoadingText="Account wird gelöscht..."
+                                 IsVisible="{Binding IsBusy}" />
     </Grid>
 </ContentPage>
-

@@ -1,11 +1,11 @@
-﻿using Microsoft.Maui.Controls.Maps;
+﻿using System.ComponentModel;
+using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Maps;
 using NBH.Resources.Models;
+using NBH.Resources.ViewModels;
 using NBH.Services;
-using Supabase;
-using Microsoft.Extensions.Logging;
-using NBH.Resources.Views;
 #if IOS
 using NBH.Platforms.iOS;
 #endif
@@ -14,14 +14,20 @@ namespace NBH
 {
     public partial class MapPage : ContentPage
     {
-        private readonly Client _client;
+        private readonly MapPageViewModel _viewModel;
         private readonly ILogger<MapPage> _logger;
+        private CancellationTokenSource? _viewportReloadDebounceCts;
 
-        public MapPage(Client client, ILogger<MapPage> logger)
+        public MapPage(MapPageViewModel viewModel, ILogger<MapPage> logger)
         {
             InitializeComponent();
-            _client = client;
+            _viewModel = viewModel;
             _logger = logger;
+            BindingContext = _viewModel;
+
+            _viewModel.Pins.CollectionChanged += (_, _) => RenderPins();
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            MainMap.PropertyChanged += OnMapPropertyChanged;
         }
 
         protected override async void OnAppearing()
@@ -31,13 +37,11 @@ namespace NBH
             try
             {
                 MyTabBar.SetActiveTabWithoutNavigation(1);  // 1 = Karte
-                MyBell.OnNewNotificationReceived();
+                await MyBell.UpdateBadgeAsync();
 
-                // 1) OPTIONAL: aktuellen Standort zentrieren
-                await LoadCurrentLocation();
-
-                // 2) Pins laden, damit Einträge mit Location angezeigt werden
-                await LoadPinsFromDatabaseAsync();
+                await _viewModel.InitializeAsync();
+                await CenterMapOnCurrentLocationAsync(showWarningIfDenied: false);
+                await ReloadForCurrentViewportAsync(force: true);
             }
             catch (Exception ex)
             {
@@ -45,201 +49,183 @@ namespace NBH
             }
         }
 
-        /// <summary>
-        /// Lädt alle Einträge aus der DB, die eine Location haben,
-        /// und setzt Pins auf der Karte.
-        /// </summary>
-        private async Task LoadPinsFromDatabaseAsync()
+        protected override void OnDisappearing()
         {
-            try
-            {
-                _logger.LogInformation("MapPage: Lade alle Einträge aus DB, um Pins zu setzen.");
+            base.OnDisappearing();
+            _viewportReloadDebounceCts?.Cancel();
+        }
 
-                var response = await _client.From<EntryItem>().Get();
-                if (response != null && response.Models.Any())
-                {
-                    // Vorher ggf. alte Pins entfernen, um Duplikate zu vermeiden
-                    MainMap.Pins.Clear();
+        private async Task ReloadForCurrentViewportAsync(bool force = false)
+        {
+            await _viewModel.ReloadForViewportAsync(MainMap.VisibleRegion, force);
+        }
 
-                    foreach (var entry in response.Models)
-                    {
-                        if (!string.IsNullOrWhiteSpace(entry.location))
-                        {
-                            var locations = await Geocoding.GetLocationsAsync(entry.location);
-                            var first = locations?.FirstOrDefault();
-                            if (first != null)
-                            {
-                                AddPin(first.Latitude, first.Longitude, entry);
-                                _logger.LogInformation($"Pin für {entry.title} auf {entry.location} gesetzt.");
-                            }
-                            else
-                            {
-                                _logger.LogWarning($"Geocoding für '{entry.location}' ergab keine Koordinaten.");
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("MapPage: Keine Einträge oder leere DB-Antwort.");
-                }
-            }
-            catch (Exception ex)
+        private void RenderPins()
+        {
+            MainMap.Pins.Clear();
+            foreach (var item in _viewModel.Pins)
             {
-                _logger.LogError(ex, "Fehler beim Laden der Pins aus der DB.");
+                var pin = new Pin
+                {
+                    Label = string.IsNullOrWhiteSpace(item.Title) ? "Event" : item.Title.Trim(),
+                    Address = item.Location ?? string.Empty,
+                    Location = new Location(item.Latitude, item.Longitude),
+                    Type = PinType.Place
+                };
+
+                pin.MarkerClicked += async (s, e) =>
+                {
+                    e.HideInfoWindow = true;
+                    await Shell.Current.GoToAsync($"{nameof(DetailPage)}?EntryId={item.Id}");
+                };
+
+                MainMap.Pins.Add(pin);
             }
         }
 
-        /// <summary>
-        /// Fügt einen Pin zur Karte hinzu und leitet bei Klick zur DetailPage mit dem EntryItem weiter.
-        /// </summary>
-        public void AddPin(double latitude, double longitude, EntryItem entry)
+        private async Task CenterMapOnCurrentLocationAsync(bool showWarningIfDenied)
         {
             try
             {
-                if (MainMap != null)
+                var location = await _viewModel.TryGetCurrentLocationAsync();
+                if (location == null)
                 {
-                    _logger.LogInformation($"AddPin: {entry.title} (Lat={latitude}, Lon={longitude}).");
-                    var pin = new Pin
+                    if (showWarningIfDenied)
                     {
-                        Label = entry.title,
-                        Location = new Location(latitude, longitude),
-                        Type = PinType.Place
-                    };
-
-                    // Klick-Event => Weiterleitung zur DetailPage mit dem EntryItem
-                    pin.MarkerClicked += async (s, e) =>
-                    {
-                        e.HideInfoWindow = true; // InfoWindow ausblenden, falls gewünscht
-                        // Navigation zur DetailPage
-                        await Shell.Current.GoToAsync(
-                            $"{nameof(DetailPage)}",
-                            true,
-                            new Dictionary<string, object>
-                            {
-                                { "SelectedEntry", entry }
-                            });
-                    };
-
-                    MainMap.Pins.Add(pin);
-                }
-                else
-                {
-                    _logger.LogWarning("AddPin: MainMap ist null.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Hinzufügen eines Pins.");
-            }
-        }
-
-        /// <summary>
-        /// Wird beim Klick auf den "Suchen"-Button aufgerufen.
-        /// </summary>
-        private async void OnSearchClicked(object sender, EventArgs e)
-        {
-            try
-            {
-#if IOS
-                iOSHapticFeedback.TriggerHeavyImpact();
-#endif
-                HapticFeedback.Perform(HapticFeedbackType.Click);
-                var searchQuery = SearchEntry.Text;
-
-                if (!string.IsNullOrWhiteSpace(searchQuery))
-                {
-                    var locations = await Geocoding.GetLocationsAsync(searchQuery);
-                    var location = locations?.FirstOrDefault();
-
-                    if (location != null)
-                    {
-                        // Karte zentrieren
-                        MainMap.MoveToRegion(MapSpan.FromCenterAndRadius(
-                            new Location(location.Latitude, location.Longitude),
-                            Distance.FromKilometers(2)));
+                        await ToastService.ShowWarningAsync(
+                            "Standortberechtigung benötigt. Bitte aktiviere den Standort in den Einstellungen.");
                     }
-                    else
-                    {
-#if IOS
-                        iOSHapticFeedback.TriggerHeavyImpact();
-#endif
-                        HapticFeedback.Perform(HapticFeedbackType.Click);
-                        await ToastService.ShowWarningAsync("Ort nicht gefunden. Bitte prüfe die Schreibweise und versuche es erneut.");
-                    }
-                }
-                else
-                {
-#if IOS
-                    iOSHapticFeedback.TriggerHeavyImpact();
-#endif
-                    HapticFeedback.Perform(HapticFeedbackType.Click);
-                    await ToastService.ShowWarningAsync("Bitte gib einen gültigen Ort ein.");
-                }
-            }
-            catch (Exception ex)
-            {
-#if IOS
-                iOSHapticFeedback.TriggerHeavyImpact();
-#endif
-                HapticFeedback.Perform(HapticFeedbackType.Click);
-                await ToastService.ShowErrorAsync(UserFriendlyErrors.GetMessage(ex));
-            }
-        }
-
-        /// <summary>
-        /// Lädt den aktuellen Standort und fügt optional einen Pin hinzu.
-        /// </summary>
-        private async void OnLoadCurrentLocationClicked(object sender, EventArgs e) { await LoadCurrentLocation(); }
-
-        private async Task LoadCurrentLocation()
-        {
-            try
-            {
-                _logger.LogInformation("LoadCurrentLocation: Lade aktuellen Standort...");
-
-                HapticFeedback.Perform(HapticFeedbackType.Click);
-                var status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-                if (status != PermissionStatus.Granted)
-                {
-#if IOS
-                    iOSHapticFeedback.TriggerHeavyImpact();
-#endif
-                    HapticFeedback.Perform(HapticFeedbackType.Click);
-                    await ToastService.ShowWarningAsync("Standortberechtigung benötigt. Bitte aktiviere den Standort in den Einstellungen.");
-                    _logger.LogWarning("LoadCurrentLocation: Berechtigung nicht erteilt.");
                     return;
                 }
 
-                var location = await Geolocation.GetLastKnownLocationAsync();
-                if (location != null)
-                {
-                    _logger.LogInformation($"LoadCurrentLocation: Standort = {location.Latitude}, {location.Longitude}");
+                MainMap.MoveToRegion(MapSpan.FromCenterAndRadius(
+                    new Location(location.Latitude, location.Longitude),
+                    Distance.FromKilometers(5)));
 
-                    MainMap.MoveToRegion(MapSpan.FromCenterAndRadius(
-                        new Location(location.Latitude, location.Longitude),
-                        Distance.FromKilometers(5)));
-
-                    // Optional: Pin für "Mein Standort" hinzufügen
-                    AddPin(location.Latitude, location.Longitude, new EntryItem
-                    {
-                        title = "Mein Standort",
-                        location = $"{location.Latitude},{location.Longitude}"
-                    });
-                }
-                else
-                {
-                    _logger.LogWarning("LoadCurrentLocation: Kein Standort verfügbar.");
-                }
+                await ReloadForCurrentViewportAsync(force: true);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fehler beim Laden des aktuellen Standorts.");
+                _logger.LogError(ex, "Fehler beim Zentrieren auf aktuellen Standort.");
+            }
+        }
+
+        private async void OnLoadCurrentLocationClicked(object sender, EventArgs e)
+        {
+            await CenterMapOnCurrentLocationAsync(showWarningIfDenied: true);
+        }
+
+        private async void OnSearchClicked(object sender, EventArgs e)
+        {
+            var searchQuery = SearchEntry.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(searchQuery))
+            {
+                await ToastService.ShowWarningAsync("Bitte gib einen gültigen Ort ein.");
+                return;
+            }
+
+            var location = await _viewModel.SearchLocationAsync(searchQuery);
+            if (location == null)
+            {
 #if IOS
                 iOSHapticFeedback.TriggerHeavyImpact();
 #endif
                 HapticFeedback.Perform(HapticFeedbackType.Click);
-                await ToastService.ShowErrorAsync("Standort konnte nicht geladen werden. Bitte prüfe deine Standortberechtigung.");
+                await ToastService.ShowWarningAsync(
+                    "Ort nicht gefunden. Bitte pruefe die Schreibweise und versuche es erneut.");
+                return;
+            }
+
+            MainMap.MoveToRegion(MapSpan.FromCenterAndRadius(
+                new Location(location.Latitude, location.Longitude),
+                Distance.FromKilometers(2)));
+
+            await ReloadForCurrentViewportAsync(force: true);
+        }
+
+        private async void OnFilterClicked(object sender, EventArgs e)
+        {
+            var selected = await Shell.Current.DisplayActionSheetAsync(
+                "Kategorie filtern",
+                "Abbrechen",
+                null,
+                "Alles",
+                "Anfrage",
+                "Angebot",
+                "Event");
+
+            if (selected == null || selected == "Abbrechen")
+            {
+                return;
+            }
+
+            await _viewModel.SetCategoryAsync(selected, MainMap.VisibleRegion);
+            RenderPins();
+        }
+
+        private async void OnResetFilterClicked(object sender, EventArgs e)
+        {
+            await _viewModel.ResetCategoryAsync(MainMap.VisibleRegion);
+            RenderPins();
+        }
+
+        private void OnMapCardChanged(object? sender, CurrentItemChangedEventArgs e)
+        {
+            if (e.CurrentItem is not MapEntryPinItem selected)
+            {
+                return;
+            }
+
+            MainMap.MoveToRegion(MapSpan.FromCenterAndRadius(
+                new Location(selected.Latitude, selected.Longitude),
+                Distance.FromKilometers(1.2)));
+        }
+
+        private async void OnMapCardTapped(object? sender, TappedEventArgs e)
+        {
+            if (sender is not BindableObject bindable || bindable.BindingContext is not MapEntryPinItem item)
+            {
+                return;
+            }
+
+            await Shell.Current.GoToAsync($"{nameof(DetailPage)}?EntryId={item.Id}");
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MapPageViewModel.IsLoading))
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LoadingIndicator.IsVisible = _viewModel.IsLoading;
+                });
+            }
+        }
+
+        private async void OnMapPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != "VisibleRegion")
+            {
+                return;
+            }
+
+            _viewportReloadDebounceCts?.Cancel();
+            _viewportReloadDebounceCts = new CancellationTokenSource();
+            var token = _viewportReloadDebounceCts.Token;
+
+            try
+            {
+                await Task.Delay(450, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await ReloadForCurrentViewportAsync(force: false);
+            }
+            catch (TaskCanceledException)
+            {
+                // debounce
             }
         }
     }

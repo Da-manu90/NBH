@@ -73,7 +73,7 @@ namespace NBH
                     await Task.Delay(200);
                 }
 
-                if (ViewModel.ChatId != Guid.Empty && ViewModel.ChatPartnerId != Guid.Empty)
+                if (!ViewModel.IsGroupConversation && ViewModel.ChatId != Guid.Empty && ViewModel.ChatPartnerId != Guid.Empty)
                 {
                     await ViewModel.CheckForReviewPopup(ViewModel.ChatId, ViewModel.ChatPartnerId);
                 }
@@ -115,6 +115,7 @@ namespace NBH
             ViewModel.Messages.CollectionChanged -= Messages_CollectionChanged;
             MessageEntry.Focused -= OnMessageEntryFocused;
             MessageEntry.Unfocused -= OnMessageEntryUnfocused;
+            ViewModel.Cleanup();
         }
 
         private void Messages_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

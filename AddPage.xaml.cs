@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using NBH.Resources.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,7 @@ namespace NBH
             InitializeComponent();
 
             // ViewModel aus dem Service-Container
-            _viewModel = MauiProgram.Services.GetRequiredService<AddPageViewModel>();
+            _viewModel = ((App)Application.Current!).GetServiceProvider().GetRequiredService<AddPageViewModel>();
             BindingContext = _viewModel;
         }
 
@@ -48,7 +49,7 @@ namespace NBH
         {
             if (sender is VisualElement itemElement)
             {
-                // (A) Kurz größer werden
+                // (A) Kurz grÃƒÂ¶ÃƒÅ¸er werden
                 await itemElement.ScaleTo(1.2, 100, Easing.CubicOut);
                 await itemElement.ScaleTo(1.0, 100, Easing.CubicIn);
 
@@ -99,9 +100,9 @@ namespace NBH
         {
             // Kleiner werden
             await element.ScaleTo(0.8, 100, Easing.CubicIn);
-            // Etwas größer als normal
+            // Etwas grÃƒÂ¶ÃƒÅ¸er als normal
             await element.ScaleTo(1.1, 100, Easing.CubicOut);
-            // Zurück auf Originalgröße
+            // ZurÃƒÂ¼ck auf OriginalgrÃƒÂ¶ÃƒÅ¸e
             await element.ScaleTo(1.0, 50, Easing.Linear);
         }
 

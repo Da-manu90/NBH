@@ -12,140 +12,163 @@
 
     <!-- Hintergrund wird über den globalen ContentPage-Style gesteuert (Styles.xaml) -->
 
-    <Grid>
+    <Grid RowDefinitions="*,Auto">
 
-        <ScrollView>
+        <ScrollView Grid.Row="0">
             <StackLayout Spacing="0" Padding="0">
 
                 <!-- ============================================
-                     HEADER BANNER â€“ 3-Farben Gradient
-                     HÃ¶he ca. 1/5 des Viewports (kompakter)
+                     HEADER BANNER - 3-Farben Gradient
+                     Hoehe ca. 1/5 des Viewports (kompakter)
                      ============================================ -->
-                <Grid MinimumHeightRequest="210">
-                    <!-- Banner Hintergrund -->
-                    <Border StrokeThickness="0" Padding="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="0,0,36,36"/>
-                        </Border.StrokeShape>
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#87ffe9" Offset="0.0"/>
-                                <GradientStop Color="#00927f" Offset="0.5"/>
-                                <GradientStop Color="#87ffe9" Offset="1.0"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <Border.Shadow>
-                            <Shadow Brush="#006b5a" Opacity="0.7" Radius="30" Offset="0,12"/>
-                        </Border.Shadow>
-                    </Border>
-
-                    <!-- Profilbild + Name + Sterne â€“ kompakt im Banner -->
-                    <StackLayout HorizontalOptions="Center"
-                                 VerticalOptions="Center"
-                                 Spacing="4"
-                                 Margin="0,4,0,8">
-
-                        <!-- PROFILBILD -->
-                        <Grid HeightRequest="90"
-                              WidthRequest="90"
-                              HorizontalOptions="Center">
-                            <Border Stroke="White"
-                                    StrokeThickness="3.5"
-                                    WidthRequest="90"
-                                    HeightRequest="90"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
+                <Border Margin="16,14,16,0"
+                        Padding="0"
+                        Stroke="#12000000"
+                        StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
+                    </Border.Shadow>
+                    <Grid HeightRequest="232">
+                        <ff:CachedImage Source="{Binding SelectedEntry.event_image_url}"
+                                        Aspect="AspectFill"
+                                        CacheDuration="7"
+                                        LoadingPlaceholder="placeholder_event.png"
+                                        ErrorPlaceholder="placeholder_event.png"
+                                        DownsampleToViewSize="True"/>
+                        <Border StrokeThickness="0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#66006B5A" Offset="0"/>
+                                    <GradientStop Color="#AA006B5A" Offset="0.6"/>
+                                    <GradientStop Color="#CC004F44" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Grid Padding="14" RowDefinitions="Auto,*,Auto">
+                            <Border HorizontalOptions="Start"
+                                    BackgroundColor="#EAF5F2"
+                                    Padding="10,4"
+                                    StrokeThickness="0">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="45"/>
+                                    <RoundRectangle CornerRadius="10"/>
                                 </Border.StrokeShape>
-                                <Border.Shadow>
-                                    <Shadow Brush="Black" Opacity="0.25" Radius="16" Offset="0,4"/>
-                                </Border.Shadow>
-                                <ff:CachedImage x:Name="ProfileImage"
-                                               Source="{Binding ProfileImageUrl}"
-                                               Aspect="AspectFill"
-                                               HeightRequest="90"
-                                               WidthRequest="90"
-                                               CacheDuration="7"
-                                               LoadingPlaceholder="profile_placeholder.png"
-                                               ErrorPlaceholder="profile_placeholder.png"
-                                               DownsampleToViewSize="True">
-                                    <ff:CachedImage.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnProfileImageTapped"/>
-                                    </ff:CachedImage.GestureRecognizers>
-                                </ff:CachedImage>
+                                <Label Text="{Binding SelectedEntry.category}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#0B5B4F"/>
                             </Border>
+
+                            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                <Border Stroke="White"
+                                        StrokeThickness="2.5"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="28"/>
+                                    </Border.StrokeShape>
+                                    <ff:CachedImage x:Name="ProfileImage"
+                                                    Source="{Binding ProfileImageUrl}"
+                                                    Aspect="AspectFill"
+                                                    HeightRequest="56"
+                                                    WidthRequest="56"
+                                                    CacheDuration="7"
+                                                    LoadingPlaceholder="profile_placeholder.png"
+                                                    ErrorPlaceholder="profile_placeholder.png"
+                                                    DownsampleToViewSize="True">
+                                        <ff:CachedImage.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnProfileImageTapped"/>
+                                        </ff:CachedImage.GestureRecognizers>
+                                    </ff:CachedImage>
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     VerticalOptions="Center"
+                                                     Spacing="2">
+                                    <Label Text="{Binding Username}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding SelectedEntry.title}"
+                                           FontSize="13"
+                                           TextColor="#EAF7F4"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"/>
+                                </VerticalStackLayout>
+
+                                <StackLayout x:Name="RatingContainer"
+                                             Grid.Column="2"
+                                             Orientation="Vertical"
+                                             HorizontalOptions="End"
+                                             VerticalOptions="Center"
+                                             Spacing="2">
+                                    <Border BackgroundColor="#CCFFFFFF"
+                                            Padding="8,4"
+                                            StrokeThickness="0"
+                                            HorizontalOptions="End">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                        <StackLayout x:Name="StarStack"
+                                                     Orientation="Horizontal"
+                                                     Spacing="2"
+                                                     HorizontalOptions="Center">
+                                            <Grid x:Name="Star1Container">
+                                                <Image x:Name="Star1Empty" Source="star_empty32.png" WidthRequest="16" HeightRequest="16"/>
+                                                <Image x:Name="Star1Fill"  Source="star_filled32.png" WidthRequest="16" HeightRequest="16"/>
+                                            </Grid>
+                                            <Grid x:Name="Star2Container">
+                                                <Image x:Name="Star2Empty" Source="star_empty32.png" WidthRequest="16" HeightRequest="16"/>
+                                                <Image x:Name="Star2Fill"  Source="star_filled32.png" WidthRequest="16" HeightRequest="16"/>
+                                            </Grid>
+                                            <Grid x:Name="Star3Container">
+                                                <Image x:Name="Star3Empty" Source="star_empty32.png" WidthRequest="16" HeightRequest="16"/>
+                                                <Image x:Name="Star3Fill"  Source="star_filled32.png" WidthRequest="16" HeightRequest="16"/>
+                                            </Grid>
+                                            <Grid x:Name="Star4Container">
+                                                <Image x:Name="Star4Empty" Source="star_empty32.png" WidthRequest="16" HeightRequest="16"/>
+                                                <Image x:Name="Star4Fill"  Source="star_filled32.png" WidthRequest="16" HeightRequest="16"/>
+                                            </Grid>
+                                            <Grid x:Name="Star5Container">
+                                                <Image x:Name="Star5Empty" Source="star_empty32.png" WidthRequest="16" HeightRequest="16"/>
+                                                <Image x:Name="Star5Fill"  Source="star_filled32.png" WidthRequest="16" HeightRequest="16"/>
+                                            </Grid>
+                                            <StackLayout.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnStarsTapped"/>
+                                            </StackLayout.GestureRecognizers>
+                                        </StackLayout>
+                                    </Border>
+                                    <Label x:Name="RatingCountLabel"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           Text="Keine Bewertungen"
+                                           TextColor="White"
+                                           HorizontalOptions="End"/>
+                                </StackLayout>
+                            </Grid>
                         </Grid>
-
-                        <!-- BENUTZERNAME -->
-                        <Label Text="{Binding Username}"
-                               Style="{StaticResource TitleLargeStyle}"
-                               HorizontalOptions="Center"
-                               TextColor="White"
-                               Margin="0,0,0,0"/>
-
-                        <!-- BEWERTUNG (Sterne + Anzahl) -->
-                        <StackLayout x:Name="RatingContainer"
-                                     Orientation="Vertical"
-                                     HorizontalOptions="Center"
-                                     Spacing="2"
-                                     Margin="0,0,0,0">
-                            <StackLayout x:Name="StarStack"
-                                         Orientation="Horizontal"
-                                         Spacing="3"
-                                         HorizontalOptions="Center">
-                                <Grid x:Name="Star1Container">
-                                    <Image x:Name="Star1Empty" Source="star_empty32.png" WidthRequest="22" HeightRequest="22"/>
-                                    <Image x:Name="Star1Fill"  Source="star_filled32.png" WidthRequest="22" HeightRequest="22"/>
-                                </Grid>
-                                <Grid x:Name="Star2Container">
-                                    <Image x:Name="Star2Empty" Source="star_empty32.png" WidthRequest="22" HeightRequest="22"/>
-                                    <Image x:Name="Star2Fill"  Source="star_filled32.png" WidthRequest="22" HeightRequest="22"/>
-                                </Grid>
-                                <Grid x:Name="Star3Container">
-                                    <Image x:Name="Star3Empty" Source="star_empty32.png" WidthRequest="22" HeightRequest="22"/>
-                                    <Image x:Name="Star3Fill"  Source="star_filled32.png" WidthRequest="22" HeightRequest="22"/>
-                                </Grid>
-                                <Grid x:Name="Star4Container">
-                                    <Image x:Name="Star4Empty" Source="star_empty32.png" WidthRequest="22" HeightRequest="22"/>
-                                    <Image x:Name="Star4Fill"  Source="star_filled32.png" WidthRequest="22" HeightRequest="22"/>
-                                </Grid>
-                                <Grid x:Name="Star5Container">
-                                    <Image x:Name="Star5Empty" Source="star_empty32.png" WidthRequest="22" HeightRequest="22"/>
-                                    <Image x:Name="Star5Fill"  Source="star_filled32.png" WidthRequest="22" HeightRequest="22"/>
-                                </Grid>
-                            </StackLayout>
-
-                            <Label x:Name="RatingCountLabel"
-                                   Style="{StaticResource BodySmallStyle}"
-                                   FontAttributes="Bold"
-                                   Text="Keine Bewertungen"
-                                   TextColor="White"
-                                   HorizontalOptions="Center"
-                                   Margin="0,1,0,0"/>
-
-                            <StackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnStarsTapped"/>
-                            </StackLayout.GestureRecognizers>
-                        </StackLayout>
-
-                    </StackLayout>
-                </Grid>
+                    </Grid>
+                </Border>
 
                 <!-- ============================================
-                     KARTEN-BEREICH â€“ mehr Abstand zum Banner
+                     KARTEN-BEREICH - mehr Abstand zum Banner
                      ============================================ -->
                 <StackLayout Spacing="12" Padding="16,24,16,0">
 
                     <!-- ========== KARTE: TITEL + DATUM ========== -->
-                    <Border BackgroundColor="#CCffffff"
-                            StrokeThickness="0"
+                    <Border BackgroundColor="#F8FFFD"
+                            Stroke="#12000000"
+                            StrokeThickness="1"
                             Padding="18,16">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20"/>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="Black" Opacity="0.08" Radius="12" Offset="0,4"/>
+                            <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
                         </Border.Shadow>
                         <StackLayout Spacing="4">
                             <Label Text="📌 Titel"
@@ -164,14 +187,15 @@
                     </Border>
 
                     <!-- ========== KARTE: BESCHREIBUNG + STANDORT ========== -->
-                    <Border BackgroundColor="#CCffffff"
-                            StrokeThickness="0"
+                    <Border BackgroundColor="#F8FFFD"
+                            Stroke="#12000000"
+                            StrokeThickness="1"
                             Padding="18,16">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20"/>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="Black" Opacity="0.08" Radius="12" Offset="0,4"/>
+                            <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
                         </Border.Shadow>
                         <StackLayout Spacing="0">
                             <!-- Beschreibung -->
@@ -194,7 +218,7 @@
                             <!-- Standort -->
                             <StackLayout Orientation="Horizontal"
                                          Spacing="12">
-                                <Label Text="ðŸ“"
+                                <Label Text="📍"
                                        FontSize="18"
                                        VerticalOptions="Center"/>
                                 <StackLayout VerticalOptions="Center" Spacing="2">
@@ -212,15 +236,16 @@
                     </Border>
                     
                     <!-- ========== KARTE: GRUPPEN-EVENT ========== -->
-                    <Border BackgroundColor="#CCffffff"
-                            StrokeThickness="0"
+                    <Border BackgroundColor="#F8FFFD"
+                            Stroke="#12000000"
+                            StrokeThickness="1"
                             Padding="18,16"
                             IsVisible="{Binding IsGroupEvent}">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20"/>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="Black" Opacity="0.08" Radius="12" Offset="0,4"/>
+                            <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4"/>
                         </Border.Shadow>
                         <StackLayout Spacing="12">
                             <StackLayout Orientation="Horizontal" Spacing="6">
@@ -231,47 +256,201 @@
                                        VerticalOptions="Center" />
                             </StackLayout>
 
-                            <!-- GesamtkapazitÃ¤t -->
+                            <!-- Gesamtkapazitaet -->
                             <controls:CapacityBarControl 
                                 FillPercentage="{Binding GeneralFillPercentage}"
-                                CountText="{Binding TotalConfirmedCount, StringFormat='{0} bestÃ¤tigt'}" />
+                                CountText="{Binding TotalConfirmedCount, StringFormat='{0} bestaetigt'}" />
+
+                            <Border BackgroundColor="#EEF7F4"
+                                    StrokeThickness="0"
+                                    Padding="10,8">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Mein Status"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="#1F5B51"/>
+                                        <Label Text="{Binding CurrentUserStatusText}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="#143E37"/>
+                                    </VerticalStackLayout>
+                                    <Border Grid.Column="1"
+                                            IsVisible="{Binding CanWithdrawApplication}"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Center"
+                                            Padding="10,4"
+                                            BackgroundColor="#C64747"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding WithdrawApplicationCommand}" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Zurueckziehen"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="White"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border HorizontalOptions="Start"
+                                    Padding="12,6"
+                                    BackgroundColor="#00695c"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding OpenGroupConversationCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Gruppenchat oeffnen"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="White"/>
+                            </Border>
 
                             <!-- Rollen -->
-                            <Label Text="VerfÃ¼gbare Rollen:" FontAttributes="Bold" FontSize="14" Margin="0,10,0,0" />
+                            <Label Text="Verfuegbare Rollen:" FontAttributes="Bold" FontSize="14" Margin="0,10,0,0" />
                             <CollectionView ItemsSource="{Binding EventRoles}">
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid ColumnDefinitions="*, Auto" Margin="0,4">
-                                            <Label Text="{Binding RoleName}" Grid.Column="0" VerticalOptions="Center" />
-                                            <Button Text="Bewerben" 
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=ApplyAsParticipantCommand}"
-                                                    CommandParameter="{Binding Id}"
-                                                    IsVisible="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=CanApply}"
-                                                    Grid.Column="1" HeightRequest="35" Padding="10,0" CornerRadius="15" BackgroundColor="#00897b" TextColor="White" />
-                                        </Grid>
+                                        <Border Stroke="#12000000"
+                                                StrokeThickness="1"
+                                                BackgroundColor="White"
+                                                Padding="12,10"
+                                                Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14"/>
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="8">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <Label Text="{Binding RoleName}" Grid.Column="0" VerticalOptions="Center" FontAttributes="Bold" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding ConfirmedCount, StringFormat='{0} belegt'}"
+                                                           FontSize="11"
+                                                           TextColor="#6A7572"
+                                                           VerticalOptions="Center"/>
+                                                </Grid>
+                                                <ProgressBar Progress="{Binding RoleProgress}"
+                                                             ProgressColor="#00897b"
+                                                             BackgroundColor="#E6EFED"
+                                                             HeightRequest="6"/>
+                                                <Border IsVisible="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=CanApply}"
+                                                        HorizontalOptions="Start"
+                                                        Padding="10,4"
+                                                        BackgroundColor="#00897b"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="12"/>
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=ApplyAsParticipantCommand}"
+                                                                              CommandParameter="{Binding Id}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="Bewerben"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"/>
+                                                </Border>
+                                            </VerticalStackLayout>
+                                        </Border>
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
+
+                            <StackLayout IsVisible="{Binding HasConfirmedParticipants}" Margin="0,6,0,0">
+                                <Label Text="Teilnehmer:"
+                                       FontAttributes="Bold"
+                                       FontSize="14" />
+                                <CollectionView ItemsSource="{Binding ConfirmedParticipants}">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Stroke="#12000000"
+                                                    StrokeThickness="1"
+                                                    BackgroundColor="White"
+                                                    Padding="10,8"
+                                                    Margin="0,4">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12"/>
+                                                </Border.StrokeShape>
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <ff:CachedImage Source="{Binding ProfileImageUrl}"
+                                                                    WidthRequest="30"
+                                                                    HeightRequest="30"
+                                                                    CacheDuration="7"
+                                                                    LoadingPlaceholder="profile_placeholder.png"
+                                                                    ErrorPlaceholder="profile_placeholder.png"
+                                                                    DownsampleToViewSize="True"/>
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding Username}"
+                                                           VerticalOptions="Center"/>
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding RoleName}"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1F5B51"
+                                                           VerticalOptions="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </StackLayout>
                             
-                            <!-- Bewerbungen (nur fÃ¼r Owner sichtbar) -->
+                            <!-- Bewerbungen (nur fuer Owner sichtbar) -->
                             <StackLayout IsVisible="{Binding IsOwner}" Margin="0,15,0,0">
                                 <Label Text="Bewerber:" FontAttributes="Bold" FontSize="14" />
                                 <CollectionView ItemsSource="{Binding PendingApplicants}">
                                     <CollectionView.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="8" Margin="0,5">
-                                                <ff:CachedImage Source="{Binding ProfileImageUrl}"
-                                                               WidthRequest="30"
-                                                               HeightRequest="30"
-                                                               Grid.Column="0"
-                                                               CacheDuration="7"
-                                                               LoadingPlaceholder="profile_placeholder.png"
-                                                               ErrorPlaceholder="profile_placeholder.png"
-                                                               DownsampleToViewSize="True"/>
-                                                <Label Text="{Binding Username}" Grid.Column="1" VerticalOptions="Center" />
-                                                <Button Text="✓" Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=ConfirmApplicantCommand}" CommandParameter="{Binding Id}" Grid.Column="2" BackgroundColor="Green" TextColor="White" HeightRequest="30" WidthRequest="30" CornerRadius="15" Padding="0" />
-                                                <Button Text="✕" Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=RejectApplicantCommand}" CommandParameter="{Binding Id}" Grid.Column="3" BackgroundColor="Red" TextColor="White" HeightRequest="30" WidthRequest="30" CornerRadius="15" Padding="0" />
-                                            </Grid>
+                                            <Border Stroke="#12000000"
+                                                    StrokeThickness="1"
+                                                    BackgroundColor="White"
+                                                    Padding="10,8"
+                                                    Margin="0,5">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12"/>
+                                                </Border.StrokeShape>
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <ff:CachedImage Source="{Binding ProfileImageUrl}"
+                                                                    WidthRequest="32"
+                                                                    HeightRequest="32"
+                                                                    Grid.Column="0"
+                                                                    CacheDuration="7"
+                                                                    LoadingPlaceholder="profile_placeholder.png"
+                                                                    ErrorPlaceholder="profile_placeholder.png"
+                                                                    DownsampleToViewSize="True"/>
+                                                    <Label Text="{Binding Username}" Grid.Column="1" VerticalOptions="Center" />
+                                                    <HorizontalStackLayout Grid.Column="2" Spacing="6">
+                                                        <Border Padding="8,3" BackgroundColor="#169B62" StrokeThickness="0">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="10"/>
+                                                            </Border.StrokeShape>
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=ConfirmApplicantCommand}"
+                                                                                      CommandParameter="{Binding Id}"/>
+                                                            </Border.GestureRecognizers>
+                                                            <Label Text="Bestaetigen" FontSize="11" FontAttributes="Bold" TextColor="White"/>
+                                                        </Border>
+                                                        <Border Padding="8,3" BackgroundColor="#C64747" StrokeThickness="0">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="10"/>
+                                                            </Border.StrokeShape>
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:DetailPageViewModel}}, Path=RejectApplicantCommand}"
+                                                                                      CommandParameter="{Binding Id}"/>
+                                                            </Border.GestureRecognizers>
+                                                            <Label Text="Ablehnen" FontSize="11" FontAttributes="Bold" TextColor="White"/>
+                                                        </Border>
+                                                    </HorizontalStackLayout>
+                                                </Grid>
+                                            </Border>
                                         </DataTemplate>
                                     </CollectionView.ItemTemplate>
                                 </CollectionView>
@@ -281,20 +460,61 @@
                     
                 </StackLayout>
 
-                <!-- ============================================
-                     BUTTONS â€“ mit Abstand zu den Cards (~30px)
-                     ============================================ -->
-                <StackLayout Spacing="12" Padding="16,30,16,0">
+                <!-- Platz fuer fixe Bottom Action-Bar -->
+                <BoxView HeightRequest="180" BackgroundColor="Transparent"/>
 
-                    <!-- Dynamischer Einzelbutton (Gradient obenâ†’unten + weiÃŸe Kontur + Schatten) -->
-                    <Border x:Name="SingleActionButton"
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Fixed Bottom Action-Bar -->
+        <Border Grid.Row="1"
+                BackgroundColor="#EEFFFFFF"
+                Stroke="#12000000"
+                StrokeThickness="1"
+                Padding="12,10,12,12">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="18,18,0,0"/>
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.10" Radius="12" Offset="0,-2"/>
+            </Border.Shadow>
+            <VerticalStackLayout Spacing="10">
+                <Border x:Name="SingleActionButton"
+                        Stroke="White"
+                        StrokeThickness="2"
+                        HeightRequest="48"
+                        Padding="0"
+                        IsVisible="{Binding IsSingleActionButtonVisible}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00d2a8" Offset="0.0"/>
+                            <GradientStop Color="#00897b" Offset="0.5"/>
+                            <GradientStop Color="#00695c" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="SingleActionButton_Tapped"/>
+                    </Border.GestureRecognizers>
+                    <Label Text="{Binding EntryActionButtonText}"
+                           TextColor="White"
+                           Style="{StaticResource TitleStyle}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+                </Border>
+
+                <Grid ColumnDefinitions="*,10,*"
+                      IsVisible="{Binding IsEventPartnerChoiceVisible}">
+                    <Border x:Name="DoubleActionButton"
+                            Grid.Column="0"
                             Stroke="White"
                             StrokeThickness="2"
-                            HeightRequest="52"
-                            Padding="0"
-                            IsVisible="{Binding IsSingleActionButtonVisible}">
+                            HeightRequest="48"
+                            Padding="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="26"/>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -303,11 +523,8 @@
                                 <GradientStop Color="#00695c" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                        <Border.Shadow>
-                            <Shadow Brush="#00695c" Opacity="0.5" Radius="16" Offset="0,6"/>
-                        </Border.Shadow>
                         <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="SingleActionButton_Tapped"/>
+                            <TapGestureRecognizer Tapped="DoubleActionButton_Tapped"/>
                         </Border.GestureRecognizers>
                         <Label Text="{Binding EntryActionButtonText}"
                                TextColor="White"
@@ -316,80 +533,42 @@
                                VerticalOptions="Center"/>
                     </Border>
 
-                    <!-- Zwei-Button-Bereich (Annehmen/Ablehnen) -->
-                    <Grid ColumnDefinitions="*,12,*"
-                          IsVisible="{Binding IsEventPartnerChoiceVisible}">
-
-                        <!-- Annehmen (Gradient obenâ†’unten + weiÃŸe Kontur) -->
-                        <Border x:Name="DoubleActionButton"
-                                Grid.Column="0"
-                                Stroke="White"
-                                StrokeThickness="2"
-                                HeightRequest="52"
-                                Padding="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="26"/>
-                            </Border.StrokeShape>
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#00d2a8" Offset="0.0"/>
-                                    <GradientStop Color="#00897b" Offset="0.5"/>
-                                    <GradientStop Color="#00695c" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.Shadow>
-                                <Shadow Brush="#00695c" Opacity="0.5" Radius="16" Offset="0,6"/>
-                            </Border.Shadow>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="DoubleActionButton_Tapped"/>
-                            </Border.GestureRecognizers>
-                            <Label Text="{Binding EntryActionButtonText}"
-                                   TextColor="White"
-                                   Style="{StaticResource TitleStyle}"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                        </Border>
-
-                        <!-- Ablehnen (Roter Gradient obenâ†’unten + weiÃŸe Kontur) -->
-                        <Border x:Name="RejectButton"
-                                Grid.Column="2"
-                                Stroke="White"
-                                StrokeThickness="2"
-                                HeightRequest="52"
-                                Padding="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="26"/>
-                            </Border.StrokeShape>
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#ff8383" Offset="0.0"/>
-                                    <GradientStop Color="#c0392b" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.Shadow>
-                                <Shadow Brush="#c0392b" Opacity="0.5" Radius="16" Offset="0,6"/>
-                            </Border.Shadow>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="RejectButton_Tapped"/>
-                            </Border.GestureRecognizers>
-                            <Label Text="Ablehnen"
-                                   TextColor="White"
-                                   FontSize="15"
-                                   FontAttributes="Bold"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                        </Border>
-                    </Grid>
-
-                    <!-- Kontakt-Button (Gradient untenâ†’oben [umgekehrt] + weiÃŸe Kontur + Schatten) -->
-                    <Border x:Name="ContactButton"
+                    <Border x:Name="RejectButton"
+                            Grid.Column="2"
                             Stroke="White"
                             StrokeThickness="2"
-                            HeightRequest="52"
-                            Padding="0"
-                            Margin="40,0">
+                            HeightRequest="48"
+                            Padding="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="26"/>
+                            <RoundRectangle CornerRadius="18"/>
+                        </Border.StrokeShape>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#ff8383" Offset="0.0"/>
+                                <GradientStop Color="#c0392b" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="RejectButton_Tapped"/>
+                        </Border.GestureRecognizers>
+                        <Label Text="Ablehnen"
+                               TextColor="White"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,10,*">
+                    <Border x:Name="ContactButton"
+                            Grid.Column="0"
+                            Stroke="White"
+                            StrokeThickness="2"
+                            HeightRequest="46"
+                            Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
@@ -398,51 +577,39 @@
                                 <GradientStop Color="#00695c" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                        <Border.Shadow>
-                            <Shadow Brush="#00695c" Opacity="0.5" Radius="16" Offset="0,6"/>
-                        </Border.Shadow>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="ContactButton_Tapped"/>
                         </Border.GestureRecognizers>
-                        <Label Text="ðŸ’¬ Kontakt"
+                        <Label Text="💬 Kontakt"
                                TextColor="White"
                                Style="{StaticResource TitleStyle}"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"/>
                     </Border>
 
-                    <!-- ZurÃ¼ck-Button (heller, einfarbig, weiÃŸe Kontur + Schatten) -->
                     <Border x:Name="BackButton"
+                            Grid.Column="2"
                             BackgroundColor="#b0f5e8"
                             Stroke="White"
                             StrokeThickness="2"
-                            HeightRequest="48"
-                            Padding="0"
-                            Margin="60,4,60,0">
+                            HeightRequest="46"
+                            Padding="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="24"/>
+                            <RoundRectangle CornerRadius="18"/>
                         </Border.StrokeShape>
-                        <Border.Shadow>
-                            <Shadow Brush="#00695c" Opacity="0.35" Radius="14" Offset="0,5"/>
-                        </Border.Shadow>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="BackButton_Tapped"/>
                         </Border.GestureRecognizers>
-                        <Label Text="â† ZurÃ¼ck"
+                        <Label Text="← Zurueck"
                                TextColor="#00695c"
                                FontSize="15"
                                FontAttributes="Bold"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"/>
                     </Border>
-
-                </StackLayout>
-
-                <!-- Abstand zum unteren Bildschirmrand -->
-                <BoxView HeightRequest="40" BackgroundColor="Transparent"/>
-
-            </StackLayout>
-        </ScrollView>
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
 
         <!-- Loading Overlay -->
         <controls:LoadingOverlay x:Name="DetailLoadingOverlay"

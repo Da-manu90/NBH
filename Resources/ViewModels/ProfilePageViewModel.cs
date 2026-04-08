@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -29,6 +30,15 @@ using NBH.Platforms.iOS;
 
 namespace NBH.Resources.ViewModels
 {
+    public class ProfileActivityCard
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string AccentColor { get; set; } = "#00897b";
+    }
+
     public partial class ProfilePageViewModel : ObservableObject
     {
         // ----------------------------------------------------------------
@@ -36,6 +46,8 @@ namespace NBH.Resources.ViewModels
         // ----------------------------------------------------------------
         private readonly Supabase.Client _supabaseClient;
         private readonly AuthService _authService;
+        private readonly AppSessionFlowService _appSessionFlowService;
+        private readonly AppWarmupService _appWarmupService;
         private readonly ILogger<ProfilePageViewModel> _logger;
 
         private const string BucketName = "profile_pictures";
@@ -67,6 +79,22 @@ namespace NBH.Resources.ViewModels
         [ObservableProperty]
         private string qualifikationen;
 
+        [ObservableProperty]
+        private int entriesCreated;
+
+        [ObservableProperty]
+        private int entriesParticipated;
+
+        public ObservableCollection<ProfileActivityCard> ActivityCards { get; } = new();
+        public ObservableCollection<ProfileBadge> BadgeItems { get; } = new();
+        public bool HasActivityCards => ActivityCards.Count > 0;
+        public bool HasRealActivity => EntriesCreated > 0 || EntriesParticipated > 0;
+        public bool HasNoActivity => !HasRealActivity;
+        public bool HasBadges => BadgeItems.Count > 0;
+
+        [ObservableProperty]
+        private bool isVerifiedUser;
+
         // ----------------------------------------------------------------
         // Rating-Properties
         // ----------------------------------------------------------------
@@ -95,6 +123,7 @@ namespace NBH.Resources.ViewModels
         public IRelayCommand NavigateToRatingPageCommand { get; }
         public ICommand ResetPasswordCommand { get; }
         public ICommand NavigateToSettingsCommand { get; }
+        public IRelayCommand<ProfileActivityCard> OpenActivityCardCommand { get; }
         public IAsyncRelayCommand OpenPrivacyPolicyCommand { get; }
 
         // ----------------------------------------------------------------
@@ -103,10 +132,14 @@ namespace NBH.Resources.ViewModels
         public ProfilePageViewModel(
             Supabase.Client supabaseClient,
             AuthService authService,
+            AppSessionFlowService appSessionFlowService,
+            AppWarmupService appWarmupService,
             ILogger<ProfilePageViewModel> logger)
         {
             _supabaseClient = supabaseClient;
             _authService = authService;
+            _appSessionFlowService = appSessionFlowService;
+            _appWarmupService = appWarmupService;
             _logger = logger;
 
             // Commands
@@ -116,7 +149,8 @@ namespace NBH.Resources.ViewModels
             LogoutCommand = new AsyncRelayCommand(LogoutAsync);
             SendFileByEmailCommand = new AsyncRelayCommand(SendFileByEmailAsync);
             ResetPasswordCommand = new Command(async () => await ExecuteResetPasswordAsync());
-            NavigateToSettingsCommand = new Command(async () => await Shell.Current.GoToAsync("SettingsPage"));
+            NavigateToSettingsCommand = new Command(async () => await Shell.Current.GoToAsync(Routes.SettingsPage));
+            OpenActivityCardCommand = new RelayCommand<ProfileActivityCard>(async card => await OpenActivityCardAsync(card));
             NavigateToRatingPageCommand = new RelayCommand(async () =>
             {
                 var userId = _authService.GetCurrentUserId();
@@ -127,7 +161,7 @@ namespace NBH.Resources.ViewModels
         }
 
         // ----------------------------------------------------------------
-        // Privacy Policy öffnen
+        // Privacy Policy oeffnen
         // ----------------------------------------------------------------
         private async Task OpenPrivacyPolicyAsync()
         {
@@ -135,7 +169,7 @@ namespace NBH.Resources.ViewModels
         }
 
         // ----------------------------------------------------------------
-        // Passwort zurücksetzen
+        // Passwort zuruecksetzen
         // ----------------------------------------------------------------
         private async Task ExecuteResetPasswordAsync()
         {
@@ -184,10 +218,15 @@ namespace NBH.Resources.ViewModels
                     return;
                 }
 
-                // userId als GUID interpretieren
                 if (!Guid.TryParse(userId, out var userGuid))
                 {
                     _logger.LogWarning("UserID kann nicht in GUID geparst werden.");
+                    return;
+                }
+
+                if (await TryLoadProfileSummaryAsync(userGuid))
+                {
+                    _logger.LogInformation("Eigenes Profil erfolgreich per RPC-Zusammenfassung geladen.");
                     return;
                 }
 
@@ -203,18 +242,17 @@ namespace NBH.Resources.ViewModels
                     return;
                 }
 
-                ProfileImageUrl = string.IsNullOrWhiteSpace(foundUser.ProfileImageUrl)
-                    ? "profile_placeholder.png"
-                    : _supabaseClient.Storage
-                        .From(BucketName)
-                        .GetPublicUrl(foundUser.ProfileImageUrl);
+                ApplyUserProfile(
+                    foundUser.Username,
+                    foundUser.ProfileImageUrl,
+                    foundUser.Wohnort,
+                    foundUser.UeberMich,
+                    foundUser.Qualifikationen);
 
-                Username = foundUser.Username ?? string.Empty;
-                Wohnort = foundUser.Wohnort ?? string.Empty;
-                UeberMich = foundUser.UeberMich ?? string.Empty;
-                Qualifikationen = foundUser.Qualifikationen ?? string.Empty;
-
+                EntriesCreated = 0;
+                EntriesParticipated = 0;
                 await CalculateDetailedRatingAsync(userGuid);
+                RebuildActivityCards();
             }
             catch (Exception ex)
             {
@@ -222,40 +260,212 @@ namespace NBH.Resources.ViewModels
             }
         }
 
+        private async Task<bool> TryLoadProfileSummaryAsync(Guid userGuid)
+        {
+            try
+            {
+                var cachedSummary = _appWarmupService.GetCachedOwnProfileSummary(userGuid);
+                if (cachedSummary?.User != null)
+                {
+                    ApplyProfileSummary(cachedSummary);
+                    return true;
+                }
+
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                };
+
+                var response = await _supabaseClient.Rpc("get_user_profile_summary", rpcParams);
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                {
+                    return false;
+                }
+
+                var summary = JsonConvert.DeserializeObject<UserProfileSummary>(response.Content);
+                if (summary?.User == null)
+                {
+                    return false;
+                }
+
+                ApplyProfileSummary(summary);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "get_user_profile_summary nicht verfuegbar oder fehlgeschlagen, nutze Fallback.");
+                return false;
+            }
+        }
+
+        private void ApplyProfileSummary(UserProfileSummary summary)
+        {
+            if (summary.User == null)
+            {
+                return;
+            }
+
+            ApplyUserProfile(
+                summary.User.Username,
+                summary.User.ProfileImageUrl,
+                summary.User.Wohnort,
+                summary.User.UeberMich,
+                summary.User.Qualifikationen);
+
+            FinalRating = Math.Round(summary.Rating?.FinalRating ?? 0.0, 2);
+            FinalRatingCount = summary.Rating?.TotalCount ?? 0;
+            EntriesCreated = summary.EntriesCreated;
+            EntriesParticipated = summary.EntriesParticipated;
+            IsVerifiedUser = summary.User.IsVerified;
+            RebuildActivityCards();
+            RebuildBadges();
+        }
+
+        private void ApplyUserProfile(
+            string? username,
+            string? profileImagePath,
+            string? wohnort,
+            string? ueberMich,
+            string? qualifikationen)
+        {
+            ProfileImageUrl = string.IsNullOrWhiteSpace(profileImagePath)
+                ? "profile_placeholder.png"
+                : _supabaseClient.Storage
+                    .From(BucketName)
+                    .GetPublicUrl(profileImagePath);
+
+            Username = username ?? string.Empty;
+            Wohnort = wohnort ?? string.Empty;
+            UeberMich = ueberMich ?? string.Empty;
+            Qualifikationen = qualifikationen ?? string.Empty;
+            RebuildBadges();
+        }
+
         // ----------------------------------------------------------------
-        // Rating direkt aus event_rating + chat_reviews berechnen
+        // Rating via bestehender Aggregat-RPC laden
         // ----------------------------------------------------------------
         private async Task CalculateDetailedRatingAsync(Guid userGuid)
         {
             try
             {
-                var userIdStr = userGuid.ToString();
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                };
 
-                // Event-Bewertungen laden
-                var erResp = await _supabaseClient.From<EventRating>()
-                    .Filter("reviewed_id", Supabase.Postgrest.Constants.Operator.Equals, userIdStr)
-                    .Get();
+                var response = await _supabaseClient.Rpc("get_user_rating_stats", rpcParams);
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                {
+                    FinalRating = 0.0;
+                    FinalRatingCount = 0;
+                    return;
+                }
 
-                // Chat-Bewertungen laden
-                var crResp = await _supabaseClient.From<ChatReview>()
-                    .Filter("reviewed_id", Supabase.Postgrest.Constants.Operator.Equals, userIdStr)
-                    .Get();
-
-                var erScores = (erResp.Models ?? new List<EventRating>())
-                    .Select(r => (r.event_friendliness + r.description_accuracy + r.reliability) / 3.0);
-
-                var crScores = (crResp.Models ?? new List<ChatReview>())
-                    .Select(r => (r.friendliness + r.response_time + r.helpfulness) / 3.0);
-
-                var allScores = erScores.Concat(crScores).ToList();
-
-                FinalRating = allScores.Count > 0 ? Math.Round(allScores.Average(), 2) : 0.0;
-                FinalRatingCount = allScores.Count;
+                var stats = JsonConvert.DeserializeObject<RatingStats>(response.Content);
+                FinalRating = Math.Round(stats?.FinalRating ?? 0.0, 2);
+                FinalRatingCount = stats?.TotalCount ?? 0;
+                RebuildActivityCards();
+                RebuildBadges();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Fehler beim Berechnen der Bewertung");
             }
+        }
+
+        private void RebuildActivityCards()
+        {
+            ActivityCards.Clear();
+
+            ActivityCards.Add(new ProfileActivityCard
+            {
+                Key = "created",
+                Icon = "📌",
+                Title = "Eigene Eintraege",
+                Subtitle = $"{EntriesCreated} erstellt",
+                AccentColor = "#00897b"
+            });
+
+            ActivityCards.Add(new ProfileActivityCard
+            {
+                Key = "participating",
+                Icon = "🤝",
+                Title = "Teilnahmen",
+                Subtitle = $"{EntriesParticipated} bestaetigt",
+                AccentColor = "#3f51b5"
+            });
+
+            ActivityCards.Add(new ProfileActivityCard
+            {
+                Key = "ratings",
+                Icon = "⭐",
+                Title = "Bewertung",
+                Subtitle = FinalRatingCount > 0
+                    ? $"{FinalRating:0.0} bei {FinalRatingCount} Bewertungen"
+                    : "Noch keine Bewertungen",
+                AccentColor = "#ef6c00"
+            });
+
+            OnPropertyChanged(nameof(HasActivityCards));
+            OnPropertyChanged(nameof(HasRealActivity));
+            OnPropertyChanged(nameof(HasNoActivity));
+        }
+
+        private async Task OpenActivityCardAsync(ProfileActivityCard? card)
+        {
+            if (card == null)
+            {
+                return;
+            }
+
+            if (card.Key == "created")
+            {
+                await Shell.Current.GoToAsync($"{Routes.MyEventsPage}?section=created");
+                return;
+            }
+
+            if (card.Key == "participating")
+            {
+                await Shell.Current.GoToAsync($"{Routes.MyEventsPage}?section=participating");
+                return;
+            }
+
+            if (card.Key == "ratings")
+            {
+                NavigateToRatingPageCommand.Execute(null);
+            }
+        }
+
+        private void RebuildBadges()
+        {
+            BadgeItems.Clear();
+
+            AddBadge("verified", "Verifiziert", "Account ist verifiziert.", "✅", "#00897B", IsVerifiedUser, IsVerifiedUser ? 1 : 0, null);
+            AddBadge("starter", "Starter", "Erstes Event erstellt.", "🚀", "#00AEEF", EntriesCreated >= 1, Math.Min(1, EntriesCreated / 1.0), "add_icon.png");
+            AddBadge("organizer", "Veranstalter-Profi", "Mind. 5 eigene Events.", "📅", "#2E7D32", EntriesCreated >= 5, Math.Min(1, EntriesCreated / 5.0), "add.png");
+            AddBadge("teamplayer", "Teamplayer", "Mind. 3 Teilnahmen.", "🤝", "#3949AB", EntriesParticipated >= 3, Math.Min(1, EntriesParticipated / 3.0), "chat.png");
+            AddBadge("toprated", "Top bewertet", "Ø 4.5+ bei mind. 5 Bewertungen.", "🌟", "#EF6C00", FinalRating >= 4.5 && FinalRatingCount >= 5, Math.Min(1, FinalRatingCount / 5.0), "star_filled32.png");
+            AddBadge("qualified", "Qualifiziert", "Qualifikationen gepflegt.", "🛡️", "#6A1B9A", !string.IsNullOrWhiteSpace(Qualifikationen) && Qualifikationen.Trim().Length >= 20, Math.Min(1, (Qualifikationen?.Trim().Length ?? 0) / 20.0), "dp_benutzerinformationen.png");
+            AddBadge("community", "Community Aktiv", "Insgesamt 8+ Aktivitaeten.", "🏅", "#00838F", EntriesCreated + EntriesParticipated >= 8, Math.Min(1, (EntriesCreated + EntriesParticipated) / 8.0), "profile.png");
+
+            OnPropertyChanged(nameof(HasBadges));
+        }
+
+        private void AddBadge(string key, string title, string description, string icon, string color, bool unlocked, double progress, string? iconSource = null)
+        {
+            var clampedProgress = Math.Min(1.0, Math.Max(0.0, progress));
+
+            BadgeItems.Add(new ProfileBadge
+            {
+                Key = key,
+                Title = title,
+                Description = description,
+                IconText = icon,
+                IconSource = iconSource,
+                AccentColor = color,
+                IsUnlocked = unlocked,
+                Progress = clampedProgress
+            });
         }
 
         // ----------------------------------------------------------------
@@ -278,7 +488,7 @@ namespace NBH.Resources.ViewModels
 #endif
                     HapticFeedback.Perform(HapticFeedbackType.Click);
                     await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.SessionExpired);
-                    await Shell.Current.GoToAsync("//LoginPage");
+                    await _appSessionFlowService.NavigateToLoginAsync();
                     return;
                 }
 
@@ -321,7 +531,7 @@ namespace NBH.Resources.ViewModels
         }
 
         // ----------------------------------------------------------------
-        // Bild auswählen & skalieren
+        // Bild auswaehlen & skalieren
         // ----------------------------------------------------------------
         private async Task SelectAndCropImageAsync()
         {
@@ -330,12 +540,12 @@ namespace NBH.Resources.ViewModels
                 var file = await FilePicker.PickAsync(new PickOptions
                 {
                     FileTypes = FilePickerFileType.Images,
-                    PickerTitle = "Wähle ein Bild aus"
+                    PickerTitle = "Waehle ein Bild aus"
                 });
 
                 if (file == null)
                 {
-                    Debug.WriteLine("Kein Bild ausgewählt - Vorgang abgebrochen.");
+                    Debug.WriteLine("Kein Bild ausgewaehlt - Vorgang abgebrochen.");
                     return;
                 }
 
@@ -402,9 +612,7 @@ namespace NBH.Resources.ViewModels
             {
                 SecureStorage.Remove("supabase_session");
                 await _supabaseClient.Auth.SignOut();
-
-                Application.Current.MainPage = MauiProgram.Services.GetRequiredService<AppShell>();
-                await Shell.Current.GoToAsync("//LoginPage");
+                await _appSessionFlowService.NavigateToLoginAsync("Du wurdest abgemeldet.");
             }
             catch (Exception ex)
             {

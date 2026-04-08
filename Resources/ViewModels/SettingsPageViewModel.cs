@@ -1,10 +1,13 @@
+using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.Communication;
+using NBH.Resources.Models;
 using NBH.Services;
+using Newtonsoft.Json;
 
 #if IOS
 using NBH.Platforms.iOS;
@@ -17,6 +20,7 @@ namespace NBH.Resources.ViewModels
         private readonly AuthService _authService;
         private readonly Supabase.Client _supabaseClient;
         private readonly FeedbackService _feedbackService;
+        private bool _profileLoaded;
 
         public SettingsPageViewModel(AuthService authService, Supabase.Client supabaseClient, FeedbackService feedbackService)
         {
@@ -32,9 +36,11 @@ namespace NBH.Resources.ViewModels
             _isDarkModeEnabled = isDark;
             
             CurrentUserEmail = _authService.GetCurrentUserEmail() ?? "Nicht eingeloggt";
-            CurrentUsername = "Max Mustermann"; // TODO: Aus DB lesen in echtem System oder Session
-            IsVerified = true;
+            CurrentUsername = "Profil wird geladen...";
+            IsVerified = false;
             IsProfilePublic = true;
+
+            _ = LoadCurrentUserAsync();
         }
 
         public string AppVersion => $"Version {AppInfo.VersionString} (Build {AppInfo.BuildString})";
@@ -53,6 +59,9 @@ namespace NBH.Resources.ViewModels
 
         [ObservableProperty]
         private bool isProfilePublic;
+
+        [ObservableProperty]
+        private string? profileImageUrl;
 
         private bool _pushNotificationsEnabled;
         public bool PushNotificationsEnabled
@@ -145,7 +154,7 @@ namespace NBH.Resources.ViewModels
         [RelayCommand]
         private async Task NavigateToFaqAsync()
         {
-            // Shell.Current.GoToAsync(Routes.FaqPage); // Assuming FaqPage exists
+            await Shell.Current.GoToAsync(Routes.FaqPage);
         }
 
         [RelayCommand]
@@ -227,7 +236,11 @@ namespace NBH.Resources.ViewModels
                 var currentUserId = _authService.GetCurrentUserId();
                 if (string.IsNullOrEmpty(currentUserId)) return;
 
-                var uid = Guid.Parse(currentUserId);
+                if (!Guid.TryParse(currentUserId, out var uid))
+                {
+                    await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.AccountDeleteError);
+                    return;
+                }
                 await _supabaseClient.From<NBH.Resources.Models.User>()
                     .Where(u => u.Id == uid)
                     .Set(u => u.DeletionRequestedAt, DateTime.UtcNow)
@@ -236,7 +249,7 @@ namespace NBH.Resources.ViewModels
 
                 // Ausloggen
                 await _supabaseClient.Auth.SignOut();
-                await Shell.Current.GoToAsync("//LoginPage");
+                await Shell.Current.GoToAsync(Routes.LoginPage);
 
                 // Erfolgs-Toast nach Navigation
                 await ToastService.ShowSuccessAsync(UserFriendlyErrors.Messages.AccountDeleteSuccess);
@@ -248,6 +261,74 @@ namespace NBH.Resources.ViewModels
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        private async Task LoadCurrentUserAsync()
+        {
+            try
+            {
+                var currentUserId = _authService.GetCurrentUserId();
+                if (string.IsNullOrWhiteSpace(currentUserId) || !Guid.TryParse(currentUserId, out var userGuid))
+                    return;
+
+                var response = await _supabaseClient.Rpc("get_user_profile_summary", new Dictionary<string, object>
+                {
+                    { "p_user_id", userGuid }
+                });
+
+                if (string.IsNullOrWhiteSpace(response?.Content))
+                    return;
+
+                var summary = JsonConvert.DeserializeObject<UserProfileSummary>(response.Content);
+                if (summary?.User == null)
+                    return;
+
+                CurrentUsername = string.IsNullOrWhiteSpace(summary.User.Username)
+                    ? "Mein Profil"
+                    : summary.User.Username;
+                CurrentUserEmail = string.IsNullOrWhiteSpace(summary.User.Email)
+                    ? CurrentUserEmail
+                    : summary.User.Email;
+                IsVerified = summary.User.IsVerified;
+                IsProfilePublic = summary.User.IsPublic;
+                ProfileImageUrl = summary.User.ProfileImageUrl;
+                _profileLoaded = true;
+            }
+            catch
+            {
+                CurrentUsername = "Mein Profil";
+            }
+        }
+
+        partial void OnIsProfilePublicChanged(bool value)
+        {
+            if (!_profileLoaded)
+            {
+                return;
+            }
+
+            _ = UpdateProfileVisibilityAsync(value);
+        }
+
+        private async Task UpdateProfileVisibilityAsync(bool isPublic)
+        {
+            try
+            {
+                var currentUserId = _authService.GetCurrentUserId();
+                if (string.IsNullOrWhiteSpace(currentUserId) || !Guid.TryParse(currentUserId, out var uid))
+                {
+                    return;
+                }
+
+                await _supabaseClient.From<NBH.Resources.Models.User>()
+                    .Where(u => u.Id == uid)
+                    .Set(u => u.IsPublic, isPublic)
+                    .Update();
+            }
+            catch
+            {
+                // Non-blocking setting update
             }
         }
     }

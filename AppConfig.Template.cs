@@ -20,9 +20,8 @@ namespace NBH
         // OneSignal Push Notifications
         public const string OneSignalAppId = "DEINE_ONESIGNAL_APP_ID";
 
-        // AppCenter Crash Reporting
-        public const string AppCenterAndroid = "ANDROID_APP_CENTER_KEY";
-        public const string AppCenteriOS     = "IOS_APP_CENTER_KEY";
+        // Sentry
+        public const string SentryDsn = "https://DEIN_SENTRY_DSN";
     }
 }
 */

@@ -1,9 +1,9 @@
 // ============================================================
-// LoginPage.xaml.cs – Polished Version
+// LoginPage.xaml.cs - Polished Version
 //
 // Angepasst an das aktuelle Projekt:
-// - Parameterloser Konstruktor (für Shell/ContentTemplate)
-// - DI-Konstruktor (für direkte Injection)
+// - Parameterloser Konstruktor (fuer Shell/ContentTemplate)
+// - DI-Konstruktor (fuer direkte Injection)
 // - iOS Haptic Feedback
 // - PageEntranceAsync Animation
 // - Fokus-Animationen auf Entry-Borders
@@ -28,10 +28,10 @@ namespace NBH
     public partial class LoginPage : ContentPage
     {
         // --------------------------------------------------------
-        // Parameterloser Konstruktor – für Shell / ContentTemplate
+        // Parameterloser Konstruktor - fuer Shell / ContentTemplate
         // --------------------------------------------------------
         public LoginPage()
-            : this(MauiProgram.Services.GetRequiredService<LoginPageViewModel>())
+            : this(((App)Application.Current!).GetServiceProvider().GetRequiredService<LoginPageViewModel>())
         {
             Debug.WriteLine("[LoginPage] Parameterloser Konstruktor aufgerufen.");
         }
@@ -45,7 +45,7 @@ namespace NBH
             BindingContext = viewModel;
             Debug.WriteLine("[LoginPage] DI-Konstruktor aufgerufen. BindingContext gesetzt auf " + viewModel.GetType().Name);
 
-            // Passwortfeld: Enter drücken → Fokus entfernen
+            // Passwortfeld: Enter druecken -> Fokus entfernen
             PasswordEntry.Completed += (s, e) => PasswordEntry.Unfocus();
 
             // Fehler-Binding beobachten um Banner zu animieren
@@ -69,7 +69,7 @@ namespace NBH
             // Kurze Pause damit das Layout fertig gemessen ist
             await Task.Delay(50);
 
-            // Gestaffelte Eingangsanimation: Logo → Formular → Buttons
+            // Gestaffelte Eingangsanimation: Logo -> Formular -> Buttons
             await AnimationHelper.PageEntranceAsync(
                 LogoSection,
                 FormSection,
@@ -167,7 +167,7 @@ namespace NBH
 
             if (vm.IsErrorVisible && !string.IsNullOrEmpty(vm.ErrorMessage))
             {
-                // Formular schütteln + Banner einblenden
+                // Formular schuetteln + Banner einblenden
                 await Task.WhenAll(
                     AnimationHelper.ShakeAsync(FormSection),
                     ShowErrorBanner()

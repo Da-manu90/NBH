@@ -12,15 +12,15 @@ namespace NBH
     {
         private readonly IServiceProvider _serviceProvider;
 
-        // PopupOptions für transparenten Hintergrund
+        // PopupOptions fuer transparenten Hintergrund
         private static readonly PopupOptions TransparentPopupOptions = new PopupOptions
         {
             PageOverlayColor = Colors.Transparent
         };
 
         public RegisterPage()
-            : this(MauiProgram.Services.GetRequiredService<RegisterPageViewModel>(),
-                  MauiProgram.Services)
+            : this(((App)Application.Current!).GetServiceProvider().GetRequiredService<RegisterPageViewModel>(),
+                  ((App)Application.Current!).GetServiceProvider())
         {
         }
 
@@ -31,16 +31,16 @@ namespace NBH
             _serviceProvider = serviceProvider;
         }
 
-        // Events für Hilfe-Icons - NEUE SIGNATUR mit PopupOptions
+        // Events fuer Hilfe-Icons - neue Signatur mit PopupOptions
         private async void OnUsernameHelpClicked(object sender, EventArgs e)
         {
-            var popup = new HelpPopup("Der Benutzername, welcher repräsentativ für Sie verwendet wird.");
+            var popup = new HelpPopup("Der Benutzername, der repraesentativ fuer dich verwendet wird.");
             await this.ShowPopupAsync(popup, TransparentPopupOptions);
         }
 
         private async void OnEmailHelpClicked(object sender, EventArgs e)
         {
-            var popup = new HelpPopup("An diese Adresse wird eine Email gesendet, welche Sie bestätigen müssen, damit Ihr Account verifiziert ist.");
+            var popup = new HelpPopup("An diese Adresse wird eine E-Mail gesendet, die du bestaetigen musst.");
             await this.ShowPopupAsync(popup, TransparentPopupOptions);
         }
     }

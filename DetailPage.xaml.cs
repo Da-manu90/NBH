@@ -56,7 +56,10 @@ namespace NBH
 
             if (_viewModel.SelectedEntry == null && !string.IsNullOrEmpty(EntryId))
             {
-                await _viewModel.LoadEntryByIdAsync(Guid.Parse(EntryId));
+                if (Guid.TryParse(EntryId, out var entryGuid))
+                {
+                    await _viewModel.LoadEntryByIdAsync(entryGuid);
+                }
             }
 
             UpdateStarsDetailed(_viewModel.FinalRating, _viewModel.FinalRatingCount);

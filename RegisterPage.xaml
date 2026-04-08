@@ -105,6 +105,34 @@
                            Style="{StaticResource BodyStyle}"/>
                 </Border>
 
+                <!-- AGB / Nutzungsbedingungen -->
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,4">
+                    <CheckBox IsChecked="{Binding HasAcceptedTerms}"
+                              Color="#5A9CA5"
+                              VerticalOptions="Center"/>
+                    <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
+                        <Label Text="Ich akzeptiere die"
+                               TextColor="Black"
+                               FontSize="13"
+                               VerticalOptions="Center"/>
+                        <Label TextColor="#5A9CA5"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Nutzungsbedingungen"
+                                          TextDecorations="Underline">
+                                        <Span.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding OpenTermsCommand}"/>
+                                        </Span.GestureRecognizers>
+                                    </Span>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </HorizontalStackLayout>
+                </Grid>
+
                 <!-- Registrieren-Button mit Lade-Spinner -->
                 <Border HeightRequest="50"
                         StrokeThickness="0"

@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+    xmlns:models="clr-namespace:NBH.Resources.Models"
     x:Class="NBH.ProfilePage"
     x:DataType="viewModels:ProfilePageViewModel"
     xmlns:controls="clr-namespace:NBH.Resources.Controls"
@@ -13,7 +14,7 @@
     <!-- Hintergrund wird über den globalen ContentPage-Style gesteuert (Styles.xaml) -->
 
     <!-- ============================================================
-         Ãƒâ€žUSSERES GRID: Inhalt (Row 0) + TabBar (Row 1)
+         AUSSERES GRID: Inhalt (Row 0) + TabBar (Row 1)
          ============================================================ -->
     <Grid RowDefinitions="*,Auto">
 
@@ -27,8 +28,8 @@
                 <StackLayout Spacing="0" Padding="0">
 
                     <!-- ============================================
-                         HEADER BANNER Ã¢â‚¬â€œ 3-Farben Gradient
-                         Höhe ca. 1/5 des Viewports (kompakter)
+                         HEADER BANNER - 3-Farben Gradient
+                         Hoehe ca. 1/5 des Viewports (kompakter)
                          ============================================ -->
                     <Grid MinimumHeightRequest="210">
                         <!-- Banner Hintergrund -->
@@ -47,19 +48,6 @@
                                 <Shadow Brush="#006b5a" Opacity="0.7" Radius="30" Offset="0,12"/>
                             </Border.Shadow>
                         </Border>
-
-                        <!-- Settings Button oben rechts -->
-                        <ImageButton Source="settings.png"
-                                     Command="{Binding NavigateToSettingsCommand}"
-                                     WidthRequest="32" HeightRequest="32"
-                                     Margin="0,48,20,0"
-                                     HorizontalOptions="End"
-                                     VerticalOptions="Start"
-                                     BackgroundColor="Transparent">
-                            <ImageButton.Shadow>
-                                <Shadow Brush="Black" Opacity="0.3" Radius="5" Offset="0,2"/>
-                            </ImageButton.Shadow>
-                        </ImageButton>
 
                         <!-- Profilbild + Name + Sterne – kompakt im Banner -->
                         <StackLayout HorizontalOptions="Center"
@@ -131,9 +119,135 @@
                     </Grid>
 
                     <!-- ============================================
-                         KARTEN-BEREICH Ã¢â‚¬â€œ mehr Abstand zum Banner
+                         KARTEN-BEREICH - mehr Abstand zum Banner
                          ============================================ -->
                     <StackLayout Spacing="12" Padding="16,24,16,16">
+
+                        <!-- ========== CARD: QUICK STATS ========== -->
+                        <Border BackgroundColor="#CCffffff"
+                                StrokeThickness="0"
+                                Padding="14,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,2"/>
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Profil-Statistiken"
+                                       Style="{StaticResource BodySmallStyle}"
+                                       FontAttributes="Bold"
+                                       TextColor="#00695c"/>
+                                <Grid ColumnDefinitions="*,10,*">
+                                    <Border Grid.Column="0" BackgroundColor="#F4FFFC" Padding="10,8" Stroke="#12000000" StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12"/>
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Eintraege"
+                                                   FontSize="11"
+                                                   TextColor="#5A6A68"/>
+                                            <Label Text="{Binding EntriesCreated}"
+                                                   FontSize="20"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#0E5146"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                    <Border Grid.Column="2" BackgroundColor="#F4F7FF" Padding="10,8" Stroke="#12000000" StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12"/>
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Teilnahmen"
+                                                   FontSize="11"
+                                                   TextColor="#5A6A68"/>
+                                            <Label Text="{Binding EntriesParticipated}"
+                                                   FontSize="20"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#24397B"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- ========== CARD: ACTIVITY CAROUSEL ========== -->
+                        <Border BackgroundColor="#CCffffff"
+                                StrokeThickness="0"
+                                Padding="14,12"
+                                IsVisible="{Binding HasRealActivity}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,2"/>
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Aktivitaet"
+                                       Style="{StaticResource BodySmallStyle}"
+                                       FontAttributes="Bold"
+                                       TextColor="#00695c"/>
+                                <CarouselView ItemsSource="{Binding ActivityCards}"
+                                              HeightRequest="110"
+                                              PeekAreaInsets="18">
+                                    <CarouselView.ItemTemplate>
+                                        <DataTemplate x:DataType="viewModels:ProfileActivityCard">
+                                            <Border Stroke="#12000000"
+                                                    StrokeThickness="1"
+                                                    BackgroundColor="White"
+                                                    Padding="12,10"
+                                                    Margin="4,0">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:ProfilePageViewModel}}, Path=OpenActivityCardCommand}"
+                                                        CommandParameter="{Binding .}"/>
+                                                </Border.GestureRecognizers>
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Label Text="{Binding Icon}"
+                                                           FontSize="18"/>
+                                                    <Label Text="{Binding Title}"
+                                                           FontSize="14"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A"/>
+                                                    <Label Text="{Binding Subtitle}"
+                                                           FontSize="12"
+                                                           TextColor="#555"/>
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CarouselView.ItemTemplate>
+                                </CarouselView>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border BackgroundColor="#CCffffff"
+                                StrokeThickness="0"
+                                Padding="14,12"
+                                IsVisible="{Binding HasNoActivity}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,2"/>
+                            </Border.Shadow>
+                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                <Image Source="no_entries_illustration.svg"
+                                       HeightRequest="88"
+                                       Aspect="AspectFit"
+                                       HorizontalOptions="Center"/>
+                                <Label Text="Du bist noch nicht aktiv! Erstelle dein erstes Event,"
+                                       HorizontalTextAlignment="Center"
+                                       FontSize="12"
+                                       TextColor="#47625C"/>
+                                <Label Text="oder nehme an einem teil."
+                                       HorizontalTextAlignment="Center"
+                                       FontSize="12"
+                                       TextColor="#47625C"/>
+                            </VerticalStackLayout>
+                        </Border>
 
                         <!-- ========== KARTE: WOHNORT ========== -->
                         <Border BackgroundColor="#CCffffff"
@@ -177,7 +291,7 @@
                                 <Shadow Brush="Black" Opacity="0.06" Radius="8" Offset="0,2"/>
                             </Border.Shadow>
                             <StackLayout Spacing="8">
-                                <Label Text="Über mich"
+                                <Label Text="Ueber mich"
                                        Style="{StaticResource BodySmallStyle}"
                                        FontAttributes="Bold"
                                        TextColor="#00695c"/>
@@ -190,7 +304,7 @@
                                     </Border.StrokeShape>
                                     <Editor Text="{Binding UeberMich}"
                                             FontSize="15"
-                                            Placeholder="Hier kannst du etwas ÃƒÂ¼ber dich schreiben"
+                                            Placeholder="Hier kannst du etwas ueber dich schreiben"
                                             PlaceholderColor="#ACACAC"
                                             AutoSize="TextChanges"
                                             MaxLength="200"
@@ -214,27 +328,60 @@
                                        Style="{StaticResource BodySmallStyle}"
                                        FontAttributes="Bold"
                                        TextColor="#00695c"/>
+                                <Label Text="Noch keine freigeschalteten Abzeichen."
+                                       FontSize="12"
+                                       TextColor="#5B6C68"
+                                       IsVisible="{Binding HasBadges, Converter={StaticResource InverseBooleanConverter}}"/>
                                 <FlexLayout Wrap="Wrap"
                                             Direction="Row"
                                             AlignItems="Start"
-                                            JustifyContent="Start">
-                                    <Border BackgroundColor="Transparent"
-                                            StrokeThickness="0"
-                                            Padding="6,3"
-                                            Margin="0,0,6,6">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10"/>
-                                        </Border.StrokeShape>
-                                        <Border.Background>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                <GradientStop Color="#e0f7fa" Offset="0"/>
-                                                <GradientStop Color="#b2ebf2" Offset="1"/>
-                                            </LinearGradientBrush>
-                                        </Border.Background>
-                                        <Label Text="Keine Abzeichen"
-                                               FontSize="12"
-                                               TextColor="#00695c"/>
-                                    </Border>
+                                            JustifyContent="Start"
+                                            BindableLayout.ItemsSource="{Binding BadgeItems}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:ProfileBadge">
+                                            <Border StrokeThickness="0"
+                                                    Padding="10,6"
+                                                    Margin="0,0,6,6">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12"/>
+                                                </Border.StrokeShape>
+                                                <Border.Background>
+                                                    <SolidColorBrush Color="{Binding AccentColor}"/>
+                                                </Border.Background>
+                                                <VerticalStackLayout Spacing="2">
+                                                    <HorizontalStackLayout Spacing="6">
+                                                        <Image Source="{Binding IconSource}"
+                                                               HeightRequest="12"
+                                                               WidthRequest="12">
+                                                            <Image.Triggers>
+                                                                <DataTrigger TargetType="Image" Binding="{Binding IconSource}" Value="{x:Null}">
+                                                                    <Setter Property="IsVisible" Value="False"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger TargetType="Image" Binding="{Binding IconSource}" Value="">
+                                                                    <Setter Property="IsVisible" Value="False"/>
+                                                                </DataTrigger>
+                                                            </Image.Triggers>
+                                                        </Image>
+                                                        <Label Text="{Binding IconText}"
+                                                               FontSize="12"
+                                                               TextColor="White"/>
+                                                        <Label Text="{Binding Title}"
+                                                               FontSize="12"
+                                                               FontAttributes="Bold"
+                                                               TextColor="White"/>
+                                                    </HorizontalStackLayout>
+                                                    <Label Text="{Binding ProgressLabel}"
+                                                           FontSize="10"
+                                                           TextColor="#E7F5F2"/>
+                                                </VerticalStackLayout>
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsLocked}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.5"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
                                 </FlexLayout>
                             </StackLayout>
                         </Border>
@@ -450,6 +597,21 @@
                                      LoadingText="Profil wird gespeichert..."
                                      IsVisible="{Binding IsBusy}"/>
 
+            <ImageButton x:Name="SettingsButton"
+                         Source="settings_icon.webp"
+                         Clicked="OnSettingsButtonClicked"
+                         WidthRequest="32"
+                         HeightRequest="32"
+                         Margin="0,48,20,0"
+                         HorizontalOptions="End"
+                         VerticalOptions="Start"
+                         BackgroundColor="Transparent"
+                         ZIndex="20">
+                <ImageButton.Shadow>
+                    <Shadow Brush="Black" Opacity="0.3" Radius="5" Offset="0,2"/>
+                </ImageButton.Shadow>
+            </ImageButton>
+
             <!-- Bell Control -->
             <controls:BellControl
                 x:Name="MyBell"
@@ -469,7 +631,7 @@
             SelectedIndex="0"/>
 
     </Grid>
-    <!-- ========== ENDE Ãƒâ€žUSSERES GRID ========== -->
+    <!-- ========== ENDE AUSSERES GRID ========== -->
 
 </ContentPage>
 

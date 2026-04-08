@@ -34,8 +34,8 @@ namespace NBH
         private readonly HttpClient _httpClient;
         private readonly AuthService _authService;
 
-        private static readonly string SupabaseUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
-        private static readonly string SupabaseKey = Environment.GetEnvironmentVariable("SUPABASE_KEY");
+        private static readonly string SupabaseUrl = AppConfig.SupabaseUrl;
+        private static readonly string SupabaseKey = AppConfig.SupabaseAnonKey;
         private const string BucketName = "profile_pictures";
 
         public CropImagePage()
@@ -238,7 +238,7 @@ namespace NBH
         {
             try
             {
-                // 1) User-JWT (für Auth) holen
+                // 1) User-JWT (fÃ¼r Auth) holen
                 var userJwt = await SecureStorage.GetAsync("jwt_token");
                 if (string.IsNullOrEmpty(userJwt))
                 {
@@ -253,10 +253,10 @@ namespace NBH
                 // 2) Eindeutigen Dateinamen erzeugen
                 var fileName = $"{Guid.NewGuid()}_cropped.png";
 
-                // Bucket je nach Modus auswählen
+                // Bucket je nach Modus auswÃ¤hlen
                 string targetBucket = NavigationService.ImageCropMode == "Event" ? "event_pictures" : "profile_pictures";
 
-                // 3) Ziel-URL für den Upload
+                // 3) Ziel-URL fÃ¼r den Upload
                 var url = $"{SupabaseUrl}/storage/v1/object/{targetBucket}/{fileName}";
 
                 // 4) Multipart-Inhalt mit PNG anlegen
@@ -278,7 +278,7 @@ namespace NBH
                 // 7) Wenn erfolgreich hochgeladen
                 if (response.IsSuccessStatusCode)
                 {
-                    // Öffentlicher Pfad für das hochgeladene Bild
+                    // Ã–ffentlicher Pfad fÃ¼r das hochgeladene Bild
                     var pubUrl = $"{SupabaseUrl}/storage/v1/object/public/{targetBucket}/{fileName}";
                     Debug.WriteLine("UploadCroppedImageAsync => success => " + pubUrl);
 
@@ -287,7 +287,7 @@ namespace NBH
                         // Statt DB-Update schicken wir die URL per Message ans ViewModel
                         WeakReferenceMessenger.Default.Send(new EventImageUploadedMessage(pubUrl));
                         
-                        // Setze sicherheitshalber wieder auf Profile zurück
+                        // Setze sicherheitshalber wieder auf Profile zurÃ¼ck
                         NavigationService.ImageCropMode = "Profile";
 
                         await Shell.Current.GoToAsync("..");
@@ -317,7 +317,7 @@ namespace NBH
                             var profilePageInstance = navStack?.FirstOrDefault(pg => pg is ProfilePage) as ProfilePage;
                             if (profilePageInstance != null && profilePageInstance.BindingContext is ProfilePageViewModel profileVM)
                             {
-                                // Weil es ein IAsyncRelayCommand ist, können wir ExecuteAsync aufrufen
+                                // Weil es ein IAsyncRelayCommand ist, kÃ¶nnen wir ExecuteAsync aufrufen
                                 await profileVM.LoadOwnProfileCommand.ExecuteAsync(null);
                             }
                         }
@@ -333,7 +333,7 @@ namespace NBH
                         // 10) Benutzerfeedback
                         await ToastService.ShowSuccessAsync("Profilbild erfolgreich aktualisiert!");
 
-                        // 11) Navigation zurück zur Profilseite
+                        // 11) Navigation zurÃ¼ck zur Profilseite
                         await Shell.Current.GoToAsync("//ProfilePage");
 
                         return pubUrl;

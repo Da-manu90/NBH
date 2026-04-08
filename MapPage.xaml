@@ -2,7 +2,10 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             xmlns:viewModels="clr-namespace:NBH.Resources.ViewModels"
+             xmlns:models="clr-namespace:NBH.Resources.Models"
              x:Class="NBH.MapPage"
+             x:DataType="viewModels:MapPageViewModel"
              Shell.NavBarIsVisible="False"
              Padding="0"
              xmlns:controls="clr-namespace:NBH.Resources.Controls">
@@ -24,13 +27,22 @@
             <Border.Shadow>
                 <Shadow Brush="Black" Offset="0,4" Radius="12" Opacity="0.12"/>
             </Border.Shadow>
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <Label Text="📍 Karte in der Nähe"
                        FontSize="18"
                        FontAttributes="Bold"
                        TextColor="#1A1A1A"
                        VerticalOptions="Center"/>
                 <Button Grid.Column="1"
+                        Text="Filter"
+                        Clicked="OnFilterClicked"
+                        HeightRequest="40"
+                        CornerRadius="18"
+                        Padding="12,0"
+                        BackgroundColor="#E2F2EF"
+                        TextColor="#00695c"
+                        FontSize="12"/>
+                <Button Grid.Column="2"
                         Text="⊕"
                         Clicked="OnLoadCurrentLocationClicked"
                         WidthRequest="40" HeightRequest="40"
@@ -39,6 +51,28 @@
                         BackgroundColor="#00897b"
                         TextColor="White"
                         FontSize="18"/>
+                <Border Grid.Column="3"
+                        BackgroundColor="#E4F8F4"
+                        Padding="10,3"
+                        StrokeThickness="0"
+                        VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10"/>
+                    </Border.StrokeShape>
+                    <Label Text="{Binding SelectedCategory}"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           TextColor="#00695c"/>
+                </Border>
+                <Button Grid.Column="4"
+                        Text="Reset"
+                        Clicked="OnResetFilterClicked"
+                        HeightRequest="32"
+                        CornerRadius="14"
+                        Padding="10,0"
+                        BackgroundColor="#F2F5F4"
+                        TextColor="#4C5A56"
+                        FontSize="11"/>
             </Grid>
         </Border>
 
@@ -46,7 +80,7 @@
         <Border BackgroundColor="#F0FFFFFF"
                 VerticalOptions="End"
                 HorizontalOptions="Fill"
-                Margin="12,0,12,100"
+                Margin="12,0,12,208"
                 Padding="12,8">
             <Border.StrokeShape><RoundRectangle CornerRadius="28"/></Border.StrokeShape>
             <Border.Stroke><SolidColorBrush Color="#20000000"/></Border.Stroke>
@@ -72,6 +106,98 @@
                         Padding="14,0"/>
             </Grid>
         </Border>
+
+        <Border BackgroundColor="#F8FFFD"
+                VerticalOptions="End"
+                HorizontalOptions="Fill"
+                Margin="12,0,12,78"
+                Padding="12,8">
+            <Border.StrokeShape><RoundRectangle CornerRadius="18"/></Border.StrokeShape>
+            <Border.Stroke><SolidColorBrush Color="#12000000"/></Border.Stroke>
+            <Border.Shadow>
+                <Shadow Brush="Black" Offset="0,4" Radius="12" Opacity="0.12"/>
+            </Border.Shadow>
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Sichtbare Einträge"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       TextColor="#00695c"/>
+                <CarouselView ItemsSource="{Binding Pins}"
+                              HeightRequest="86"
+                              PeekAreaInsets="26"
+                              CurrentItemChanged="OnMapCardChanged">
+                    <CarouselView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           SnapPointsType="MandatorySingle"
+                                           SnapPointsAlignment="Center"/>
+                    </CarouselView.ItemsLayout>
+                    <CarouselView.ItemTemplate>
+                        <DataTemplate x:DataType="models:MapEntryPinItem">
+                            <Border BackgroundColor="White"
+                                    Stroke="#12000000"
+                                    StrokeThickness="1"
+                                    Padding="10"
+                                    Margin="4,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMapCardTapped"/>
+                                </Border.GestureRecognizers>
+                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#152320"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"/>
+                                    <Label Grid.Row="1"
+                                           Text="{Binding Location, StringFormat='📍 {0}'}"
+                                           FontSize="11"
+                                           TextColor="#63716D"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"/>
+                                    <HorizontalStackLayout Grid.Row="2" Spacing="8">
+                                        <Border BackgroundColor="#EAF4FF"
+                                                Padding="8,2"
+                                                StrokeThickness="0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="9"/>
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding EventType}"
+                                                   FontSize="10"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#2E4A8A"/>
+                                        </Border>
+                                        <Border BackgroundColor="#E4F8F4"
+                                                Padding="8,2"
+                                                StrokeThickness="0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="9"/>
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding Category}"
+                                                   FontSize="10"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#00695c"/>
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CarouselView.ItemTemplate>
+                </CarouselView>
+            </VerticalStackLayout>
+        </Border>
+
+        <ActivityIndicator x:Name="LoadingIndicator"
+                           Grid.RowSpan="2"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="#00897b"
+                           WidthRequest="48"
+                           HeightRequest="48"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
 
         <controls:BellControl
             x:Name="MyBell"

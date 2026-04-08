@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NBH.Resources.ViewModels"
+             xmlns:controls="clr-namespace:NBH.Resources.Controls"
+             x:Class="NBH.EditEventPage"
+             x:DataType="vm:EditEventPageViewModel"
+             Shell.NavBarIsVisible="False">
+
+    <Grid>
+        <ScrollView>
+            <StackLayout Padding="16,24,16,24" Spacing="20">
+                <Label Text="Event bearbeiten"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="#006b5a"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,10"/>
+
+                <Border BackgroundColor="#CCffffff" StrokeThickness="0" Padding="16,20">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <StackLayout Spacing="16">
+                        <Label Text="Event Details" FontSize="18" FontAttributes="Bold" TextColor="#006b5a"/>
+
+                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry Placeholder="Titel *" Text="{Binding Title}" Margin="10,0" />
+                        </Border>
+
+                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Editor Placeholder="Beschreibung *" Text="{Binding Description}" HeightRequest="100" Margin="10,0" />
+                        </Border>
+
+                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Picker Title="Kategorie" SelectedItem="{Binding Category}" Margin="10,0">
+                                <Picker.Items>
+                                    <x:String>Anfrage</x:String>
+                                    <x:String>Angebot</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </Border>
+
+                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry Placeholder="Ort *" Text="{Binding Location}" Margin="10,0" />
+                        </Border>
+                    </StackLayout>
+                </Border>
+
+                <Border BackgroundColor="#CCffffff" StrokeThickness="0" Padding="16,20">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <StackLayout Spacing="14">
+                        <Label Text="Zeitraum" FontSize="18" FontAttributes="Bold" TextColor="#006b5a"/>
+                        <Label Text="Beginn" FontAttributes="Bold" TextColor="#333333"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                                <DatePicker Date="{Binding StartDate}" Margin="10,0"/>
+                            </Border>
+                            <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White" Grid.Column="1">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                                <TimePicker Time="{Binding StartTime}" Margin="10,0"/>
+                            </Border>
+                        </Grid>
+
+                        <Label Text="Ende" FontAttributes="Bold" TextColor="#333333"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                                <DatePicker Date="{Binding EndDate}" Margin="10,0"/>
+                            </Border>
+                            <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White" Grid.Column="1">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                                <TimePicker Time="{Binding EndTime}" Margin="10,0"/>
+                            </Border>
+                        </Grid>
+                    </StackLayout>
+                </Border>
+
+                <Border BackgroundColor="#CCffffff" StrokeThickness="0" Padding="16,20">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Einzel-Event"
+                                Command="{Binding SetEventTypeCommand}"
+                                CommandParameter="single"
+                                CornerRadius="20"
+                                Grid.Column="0"/>
+                        <Button Text="Gruppen-Event"
+                                Command="{Binding SetEventTypeCommand}"
+                                CommandParameter="group"
+                                CornerRadius="20"
+                                Grid.Column="1"/>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="#CCffffff" StrokeThickness="0" Padding="16,20" IsVisible="{Binding IsGroupEvent}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="16"/></Border.StrokeShape>
+                    <StackLayout Spacing="12">
+                        <Label Text="Gruppen Einstellungen" FontSize="18" FontAttributes="Bold" TextColor="#006b5a"/>
+                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                            <Entry Placeholder="Maximale Teilnehmerzahl" Text="{Binding MaxParticipants}" Keyboard="Numeric" Margin="10,0" />
+                        </Border>
+
+                        <CollectionView ItemsSource="{Binding Roles}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RoleInputModel">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Padding="0,5">
+                                        <Border Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                                            <Entry Placeholder="Rolle" Text="{Binding RoleName}" Margin="10,0"/>
+                                        </Border>
+                                        <Border Grid.Column="1" Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White" WidthRequest="60">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="8"/></Border.StrokeShape>
+                                            <Entry Placeholder="Max" Text="{Binding MaxSlots}" Keyboard="Numeric" Margin="5,0"/>
+                                        </Border>
+                                        <ImageButton Grid.Column="2"
+                                                     Source="ratingschliessen.png"
+                                                     WidthRequest="30"
+                                                     HeightRequest="30"
+                                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:EditEventPageViewModel}}, Path=RemoveRoleCommand}"
+                                                     CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Button Text="+ Rolle hinzufügen"
+                                Command="{Binding AddRoleCommand}"
+                                BackgroundColor="#E0E0E0"
+                                TextColor="#333333"
+                                CornerRadius="20"/>
+                    </StackLayout>
+                </Border>
+
+                <Button Text="Speichern"
+                        Command="{Binding SaveCommand}"
+                        BackgroundColor="#006b5a"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        CornerRadius="24"
+                        HeightRequest="50"
+                        Margin="0,10,0,20"/>
+            </StackLayout>
+        </ScrollView>
+
+        <controls:LoadingOverlay x:Name="LoadingOverlay"
+                                 Grid.RowSpan="99"
+                                 LoadingText="Event wird gespeichert..."
+                                 IsVisible="{Binding IsBusy}"/>
+    </Grid>
+</ContentPage>

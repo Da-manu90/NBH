@@ -18,8 +18,6 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 		<WindowsPackageType>None</WindowsPackageType>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		
 		<!-- ✅ FIX #3: ValidateXcodeVersion ENTFERNT (Standard = true) -->
 		
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
@@ -90,14 +88,24 @@
 		<GoogleServicesJson Include="Platforms\Android\google-services.json" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Remove="analysis\**\*.cs" />
+		<EmbeddedResource Remove="analysis\**\*" />
+		<Content Remove="analysis\**\*" />
+		<None Remove="analysis\**\*" />
+		<MauiXaml Remove="analysis\**\*.xaml" />
+		<Page Remove="analysis\**\*.xaml" />
+		<ApplicationDefinition Remove="analysis\**\*.xaml" />
+	</ItemGroup>
+
 	<!-- Fonts -->
 	<ItemGroup>
-		<MauiFont Include="Resources\Fonts\OpenSans-Regular.ttf" />
-		<MauiFont Include="Resources\Fonts\OpenSans-Semibold.ttf" />
-		<MauiFont Include="Resources\Fonts\verdana.ttf" />
+		<MauiFont Include="Resources\Fonts\OpenSans-Regular.ttf" Alias="OpenSansRegular" />
+		<MauiFont Include="Resources\Fonts\OpenSans-Semibold.ttf" Alias="OpenSansSemibold" />
+		<MauiFont Include="Resources\Fonts\verdana.ttf" Alias="Verdana" />
 		<MauiFont Include="Resources\Fonts\verdanab.ttf" Alias="VerdanaBold" />
-		<MauiFont Include="Resources\Fonts\verdanaz.ttf" />
-		<MauiFont Include="Resources\Fonts\verdanai.ttf" />
+		<MauiFont Include="Resources\Fonts\verdanaz.ttf" Alias="VerdanaBoldItalic" />
+		<MauiFont Include="Resources\Fonts\verdanai.ttf" Alias="VerdanaItalic" />
 	</ItemGroup>
 
 	<!-- Images -->
@@ -124,6 +132,7 @@
 		<MauiImage Include="Resources\Images\dp_zurueck.png" />
 		<MauiImage Include="Resources\Images\fragezeichen.png" />
 		<MauiImage Include="Resources\Images\fragezeichen_2x.png" />
+		<MauiImage Include="Resources\Images\fragezeichen_3x.png" />
 		<MauiImage Include="Resources\Images\nachrichten.png" />
 		<MauiImage Include="Resources\Images\notification_read.png" />
 		<MauiImage Include="Resources\Images\notification_unread.png" />
@@ -157,9 +166,6 @@
 		<MauiImage Include="Resources\Images\profile.png" />
 		<MauiImage Include="Resources\Images\profile_2x.png" />
 		<MauiImage Include="Resources\Images\profile_3x.png" />
-		<MauiImage Include="Resources\Images\faq.png" />
-		<MauiImage Include="Resources\Images\faq_2x.png" />
-		<MauiImage Include="Resources\Images\faq_3x.png" />
 		<MauiImage Include="Resources\Images\eye.png" />
 		<MauiImage Include="Resources\Images\eye_2x.png" />
 		<MauiImage Include="Resources\Images\eye_3x.png" />
@@ -172,6 +178,14 @@
 		<MauiImage Include="Resources\Images\profile_placeholder.png" />
 		<MauiImage Include="Resources\Images\profile_placeholder_2x.png" />
 		<MauiImage Include="Resources\Images\profile_placeholder_3x.png" />
+		<MauiImage Include="Resources\Images\google.png" />
+		<MauiImage Include="Resources\Images\facebook.png" />
+		<MauiImage Include="Resources\Images\settings_icon.webp" />
+		<MauiImage Include="Resources\Images\placeholder_event.png" />
+		<MauiImage Include="Resources\Images\chevron_down.png" />
+		<MauiImage Include="Resources\Images\faq_placeholder.svg" />
+		<MauiImage Include="Resources\Images\no_entries_illustration.svg" />
+		<MauiImage Include="Resources\Images\no_chats_illustration.svg" />
 		<MauiImage Include="Resources\Images\ratingabschicken.png" />
 		<MauiImage Include="Resources\Images\ratingchatq1.png" />
 		<MauiImage Include="Resources\Images\ratingchatq2.png" />
@@ -181,7 +195,6 @@
 		<MauiImage Include="Resources\Images\star_empty32.png" />
 		<MauiImage Include="Resources\Images\star_filled.png" />
 		<MauiImage Include="Resources\Images\star_filled32.png" />
-		<MauiImage Include="Resources\Images\fragezeichen_3x.png" />
 		<MauiImage Include="Resources\Images\textmessage.png" />
 	</ItemGroup>
 
@@ -192,9 +205,6 @@
 		<PackageReference Include="DotNetEnv" Version="3.1.1" />
 		<PackageReference Include="FFImageLoading.Maui" Version="1.3.2" />
 		<PackageReference Include="Indiko.Maui.Controls.Markdown" Version="1.5.0" />
-		<PackageReference Include="Microsoft.AppCenter" Version="5.0.7" />
-		<PackageReference Include="Microsoft.AppCenter.Analytics" Version="5.0.7" />
-		<PackageReference Include="Microsoft.AppCenter.Crashes" Version="5.0.7" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -210,10 +220,11 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="OneSignalSDK.DotNet" Version="6.1.3" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="3.1.0" />
+		<PackageReference Include="Sentry.Maui" Version="5.*" />
 		<PackageReference Include="Shiny.Core" Version="4.0.1" />
 		<PackageReference Include="Shiny.Notifications" Version="4.0.1" />
 		<PackageReference Include="Shiny.Push" Version="4.0.1" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
 		<PackageReference Include="Supabase" Version="1.0.0" />
 		<PackageReference Include="Supabase.Postgrest" Version="4.0.3" />
 		<PackageReference Include="Supabase.Realtime" Version="7.0.1" />

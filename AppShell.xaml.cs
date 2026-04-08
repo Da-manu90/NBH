@@ -22,25 +22,6 @@ namespace NBH
         {
             _authService = authService;
             InitializeComponent();
-
-            // z.B. wenn du DI nutzt oder ServiceLocator:
-            // AuthService via DI injiziert
-            
-            // Routen registrieren, damit du GoToAsync(nameof(...)) nutzen kannst
-            Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
-            Routing.RegisterRoute(nameof(ProfilePage), typeof(ProfilePage));
-            Routing.RegisterRoute(nameof(RegisterPage), typeof(RegisterPage));
-            Routing.RegisterRoute(nameof(DetailPage), typeof(DetailPage));
-            Routing.RegisterRoute(nameof(AddPage), typeof(AddPage));
-            Routing.RegisterRoute(nameof(ChatViewPage), typeof(ChatViewPage));
-            Routing.RegisterRoute(nameof(FAQPage), typeof(FAQPage));
-            Routing.RegisterRoute(nameof(ChatPage), typeof(ChatPage));
-            Routing.RegisterRoute(nameof(UserProfilePage), typeof(UserProfilePage));
-            Routing.RegisterRoute(nameof(RatingPage), typeof(RatingPage));
-            Routing.RegisterRoute(nameof(CreateEventPage), typeof(CreateEventPage));
-            Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
-
-            Debug.WriteLine("[AppShell] Routen registriert.");
         }
 
         protected override void OnAppearing()
@@ -73,9 +54,9 @@ namespace NBH
             {
                 bool isAuth = await _authService.EnsureSessionValidAsync();
                 if (isAuth)
-                    await Shell.Current.GoToAsync("//MainTabs/ProfileTab/ProfilePage");
+                    await Shell.Current.GoToAsync(Routes.ProfilePage);
                 else
-                    await Shell.Current.GoToAsync("//LoginPage");
+                    await Shell.Current.GoToAsync(Routes.LoginPage);
             }
         }
     }

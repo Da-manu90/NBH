@@ -4,9 +4,6 @@
 
 using CommunityToolkit.Maui;
 using FFImageLoading.Maui;
-using Microsoft.AppCenter;
-using Microsoft.AppCenter.Analytics;
-using Microsoft.AppCenter.Crashes;
 using Microsoft.Extensions.Logging;
 using Mopups.Hosting;
 using NBH.Resources.ViewModels;
@@ -16,6 +13,7 @@ using Supabase;
 using NBH.Resources.Controls;
 using System.Diagnostics;
 using Indiko.Maui.Controls.Markdown;
+using Sentry.Maui;
 
 namespace NBH
 {
@@ -47,6 +45,15 @@ namespace NBH
                     fonts.AddFont("verdana.ttf",           "Verdana");
                 });
 
+            if (!string.IsNullOrWhiteSpace(AppConfig.SentryDsn))
+            {
+                builder.UseSentry(options =>
+                {
+                    options.Dsn = AppConfig.SentryDsn;
+                    options.TracesSampleRate = 0.2;
+                });
+            }
+
             builder.ConfigureMauiHandlers(handlers =>
             {
 #if ANDROID
@@ -68,7 +75,6 @@ namespace NBH
 
             var app = builder.Build();
 
-            ConfigureAppCenter();
 
             // TEMPORÃƒâ€žR Ã¢â‚¬â€œ wird in Schritt 9 entfernt
             Services = app.Services;
@@ -117,11 +123,24 @@ namespace NBH
                     sp.GetRequiredService<Supabase.Client>(),
                     sp.GetRequiredService<ILogger<AuthService>>()
                 );
-                Task.Run(async () => await authService.InitializeAsync());
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await authService.InitializeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[MauiProgram] Auth init failed: {ex}");
+                    }
+                });
                 return authService;
             });
 
             services.AddSingleton<NotificationService>();
+            services.AddSingleton<AppWarmupService>();
+            services.AddSingleton<NavigationOrchestrator>();
+            services.AddSingleton<AppSessionFlowService>();
             services.AddSingleton<MyPushDelegate>();
             services.AddTransient<DeeplinkHandler>();
             services.AddSingleton<FeedbackService>();
@@ -136,7 +155,7 @@ namespace NBH
             // LoginPageViewModel (Profi: AuthService, NotificationService, INavigationService, Logger)
             services.AddTransient<LoginPageViewModel>(sp => new LoginPageViewModel(
                 sp.GetRequiredService<AuthService>(),
-                sp.GetRequiredService<NotificationService>(),
+                sp.GetRequiredService<AppSessionFlowService>(),
                 sp.GetRequiredService<INavigationService>(),
                 sp.GetRequiredService<ILogger<LoginPageViewModel>>()
             ));
@@ -155,7 +174,11 @@ namespace NBH
             services.AddTransient<FAQPageViewModel>();
             services.AddTransient<UserProfilePageViewModel>();
             services.AddTransient<CreateEventPageViewModel>();
+            services.AddTransient<EditEventPageViewModel>();
+            services.AddTransient<MyEventsPageViewModel>();
             services.AddTransient<SettingsPageViewModel>();
+            services.AddTransient<NotificationListViewModel>();
+            services.AddTransient<MapPageViewModel>();
 
             // ChatPageViewModel (spezielle Konstruktor-Signatur)
             services.AddTransient<ChatPageViewModel>(sp =>
@@ -164,7 +187,8 @@ namespace NBH
                 var authService = sp.GetRequiredService<AuthService>();
                 var supabaseClient = sp.GetRequiredService<Supabase.Client>();
                 var phoenixSrv = sp.GetRequiredService<PhoenixRealtimeService>();
-                return new ChatPageViewModel(logger, authService, supabaseClient, phoenixSrv);
+                var notificationService = sp.GetRequiredService<NotificationService>();
+                return new ChatPageViewModel(logger, authService, supabaseClient, phoenixSrv, notificationService);
             });
 
             // RatingPageViewModel hat eigenen Konstruktor mit nur Client
@@ -177,7 +201,8 @@ namespace NBH
                 var logger = sp.GetRequiredService<ILogger<ChatViewPageViewModel>>();
                 var auth = sp.GetRequiredService<AuthService>();
                 var client = sp.GetRequiredService<Client>();
-                return new ChatViewPageViewModel(logger, auth, client);
+                var phoenix = sp.GetRequiredService<PhoenixRealtimeService>();
+                return new ChatViewPageViewModel(logger, auth, client, phoenix);
             });
         }
 
@@ -200,8 +225,11 @@ namespace NBH
             services.AddTransient<AddPage>();
             services.AddTransient<FAQPage>();
             services.AddTransient<UserProfilePage>();
+            services.AddTransient<MapPage>();
             services.AddTransient<CropImagePage>();
             services.AddTransient<CreateEventPage>();
+            services.AddTransient<EditEventPage>();
+            services.AddTransient<MyEventsPage>();
             services.AddTransient<SettingsPage>();
         }
 
@@ -216,19 +244,12 @@ namespace NBH
             Routing.RegisterRoute(nameof(ChatPage),      typeof(ChatPage));
             Routing.RegisterRoute(nameof(RatingPage),    typeof(RatingPage));
             Routing.RegisterRoute(nameof(CreateEventPage), typeof(CreateEventPage));
+            Routing.RegisterRoute(nameof(EditEventPage), typeof(EditEventPage));
+            Routing.RegisterRoute(nameof(MyEventsPage), typeof(MyEventsPage));
+            Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
+            Routing.RegisterRoute(nameof(RegisterPage), typeof(RegisterPage));
         }
 
-        // ============================================================
-        // AppCenter
-        // ============================================================
-        private static void ConfigureAppCenter()
-        {
-            AppCenter.Start(
-                $"android={AppConfig.AppCenterAndroid};ios={AppConfig.AppCenteriOS}",
-                typeof(Analytics),
-                typeof(Crashes)
-            );
-        }
     }
 }
 

@@ -8,6 +8,7 @@ using Microsoft.Maui.Controls;
 using NBH.Services;
 using Supabase;
 using NBH.Resources.Models;
+using Newtonsoft.Json;
 
 namespace NBH.Resources.ViewModels
 {
@@ -39,6 +40,7 @@ namespace NBH.Resources.ViewModels
         }
 
         public int TotalConfirmedCount => ConfirmedParticipants?.Count ?? 0;
+        public bool HasConfirmedParticipants => ConfirmedParticipants?.Count > 0;
         
         public double GeneralFillPercentage => SelectedEntry?.max_participants > 0 
             ? (double)TotalConfirmedCount / SelectedEntry.max_participants.Value * 100.0 
@@ -68,6 +70,17 @@ namespace NBH.Resources.ViewModels
         public bool IsOwner => SelectedEntry?.user_id == _authService.GetCurrentUserId();
         
         public bool CanApply => !IsCurrentUserParticipant && IsGroupEvent && !IsOwner;
+        public bool CanWithdrawApplication => IsCurrentUserParticipant && CurrentUserStatus == "pending" && !IsOwner;
+        public bool HasPendingApplicants => PendingApplicants?.Count > 0;
+        public string CurrentUserStatusText => string.IsNullOrWhiteSpace(CurrentUserStatus)
+            ? "Keine Bewerbung"
+            : CurrentUserStatus switch
+            {
+                "pending" => "Bewerbung ausstehend",
+                "confirmed" => "Bewerbung bestaetigt",
+                "rejected" => "Bewerbung abgelehnt",
+                _ => CurrentUserStatus
+            };
 
         // ==========================================
         // COMMANDS & METHODEN
@@ -85,6 +98,9 @@ namespace NBH.Resources.ViewModels
         private ICommand? _withdrawApplicationCommand;
         public ICommand WithdrawApplicationCommand => _withdrawApplicationCommand ??= new Command(async () => await WithdrawApplicationAsync());
 
+        private ICommand? _openGroupConversationCommand;
+        public ICommand OpenGroupConversationCommand => _openGroupConversationCommand ??= new Command(async () => await OpenGroupConversationAsync());
+
         // Methode zum initialen Laden der Gruppen-Daten
         public async Task LoadGroupEventDataAsync(Guid entryId)
         {
@@ -98,10 +114,16 @@ namespace NBH.Resources.ViewModels
                 var roles = rolesTask.Result.Models;
                 var participants = participantsTask.Result.Models;
 
-                // Load Users to get names and images (this would be done via DB Join internally in postgres but for now load minimal data)
                 var userIds = participants.Select(p => p.UserId).Distinct().ToList();
-                var usersTask = await _supabaseClient.From<User>().Where(u => userIds.Contains(u.Id)).Get();
-                var users = usersTask.Models.ToDictionary(u => u.Id);
+                var usersResponse = await _supabaseClient.Rpc("get_public_users_batch", new Dictionary<string, object>
+                {
+                    { "p_user_ids", userIds }
+                });
+
+                var users = string.IsNullOrWhiteSpace(usersResponse?.Content)
+                    ? new Dictionary<Guid, PublicUserProfile>()
+                    : (JsonConvert.DeserializeObject<List<PublicUserProfile>>(usersResponse.Content) ?? new List<PublicUserProfile>())
+                        .ToDictionary(u => u.Id);
 
                 // Initialize properties inside Models
                 foreach (var p in participants)
@@ -151,11 +173,48 @@ namespace NBH.Resources.ViewModels
                 OnPropertyChanged(nameof(TotalConfirmedCount));
                 OnPropertyChanged(nameof(GeneralFillPercentage));
                 OnPropertyChanged(nameof(CanApply));
+                OnPropertyChanged(nameof(CanWithdrawApplication));
+                OnPropertyChanged(nameof(CurrentUserStatusText));
+                OnPropertyChanged(nameof(HasPendingApplicants));
+                OnPropertyChanged(nameof(HasConfirmedParticipants));
                 OnPropertyChanged(nameof(IsOwner));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Fehler in LoadGroupEventDataAsync");
+            }
+        }
+
+        private async Task OpenGroupConversationAsync()
+        {
+            if (SelectedEntry == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var response = await _supabaseClient.Rpc("open_or_create_event_group_conversation_safe", new Dictionary<string, object>
+                {
+                    { "p_entry_id", SelectedEntry.id }
+                });
+
+                var conversationId = string.IsNullOrWhiteSpace(response?.Content)
+                    ? Guid.Empty
+                    : JsonConvert.DeserializeObject<Guid>(response.Content);
+
+                if (conversationId == Guid.Empty)
+                {
+                    await ToastService.ShowWarningAsync("Gruppenchat konnte nicht gestartet werden.");
+                    return;
+                }
+
+                await Shell.Current.GoToAsync($"ChatPage?chatId={conversationId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Öffnen des Gruppenchats");
+                await ToastService.ShowErrorAsync("Gruppenchat konnte nicht geöffnet werden.");
             }
         }
 
@@ -179,8 +238,14 @@ namespace NBH.Resources.ViewModels
             {
                 await _supabaseClient.From<GroupEventParticipant>().Insert(participant);
                 await LoadGroupEventDataAsync(SelectedEntry.id);
+                OnPropertyChanged(nameof(CanWithdrawApplication));
                 
-                var ownerGuid = Guid.Parse(SelectedEntry.user_id);
+                if (!Guid.TryParse(SelectedEntry.user_id, out var ownerGuid))
+                {
+                    _logger.LogWarning("ApplyAsParticipantAsync: Ungültige Owner-ID in SelectedEntry.user_id");
+                    await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.ApplicationError);
+                    return;
+                }
                 var partnerName = _authService.GetCurrentUserEmail();
 
                 await _notificationService.AddNotificationAsync(
@@ -214,6 +279,7 @@ namespace NBH.Resources.ViewModels
                             .Update();
 
                 await LoadGroupEventDataAsync(SelectedEntry.id);
+                OnPropertyChanged(nameof(HasPendingApplicants));
 
                 var ownerName = _authService.GetCurrentUserEmail();
                 await _notificationService.AddNotificationAsync(
@@ -243,6 +309,7 @@ namespace NBH.Resources.ViewModels
                             .Update();
 
                 await LoadGroupEventDataAsync(SelectedEntry.id);
+                OnPropertyChanged(nameof(HasPendingApplicants));
                 
                 var ownerName = _authService.GetCurrentUserEmail();
                 await _notificationService.AddNotificationAsync(
@@ -271,6 +338,7 @@ namespace NBH.Resources.ViewModels
                             .Delete();
                             
                 await LoadGroupEventDataAsync(SelectedEntry.id);
+                OnPropertyChanged(nameof(CanWithdrawApplication));
             }
             catch (Exception ex)
             {

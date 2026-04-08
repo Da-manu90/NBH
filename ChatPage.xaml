@@ -236,7 +236,8 @@
                                 Text="{Binding CurrentMessageText}"
                                 Placeholder="Nachricht eingeben..."
                                 PlaceholderColor="#b2b3b3"
-                                Style="{StaticResource BodyLargeStyle}"
+                                FontSize="16"
+                                TextColor="Black"
                                 AutoSize="Disabled"
                                 HeightRequest="90"
                                 MaxLength="400" />

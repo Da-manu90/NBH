@@ -71,7 +71,7 @@
                 Shell.NavBarIsVisible="False" />
         </Tab>
 
-        <Tab Title="FAQ" Icon="faq.png" Route="FaqTab">
+        <Tab Title="FAQ" Icon="fragezeichen.png" Route="FaqTab">
             <ShellContent
                 ContentTemplate="{DataTemplate local:FAQPage}"
                 Route="FAQPage"

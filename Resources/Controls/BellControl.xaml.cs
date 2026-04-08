@@ -18,15 +18,16 @@ namespace NBH.Resources.Controls
         {
             InitializeComponent();
 
-            // **KORRIGIERT**: Nicht nur 'var notificationService', sondern das FELD '_notificationService' bef�llen!
-            _notificationService = MauiProgram.Services.GetService<NotificationService>();
+            // **KORRIGIERT**: Nicht nur 'var notificationService', sondern das FELD '_notificationService' befÃƒÆ’Ã‚Â¼llen!
+            var serviceProvider = ((App)Application.Current!).GetServiceProvider();
+            _notificationService = serviceProvider.GetService(typeof(NotificationService)) as NotificationService ?? throw new InvalidOperationException("NotificationService not registered.");
             _notificationService.NotificationsUpdated -= OnNotificationsUpdated;
             _notificationService.NotificationsUpdated += OnNotificationsUpdated;
             _notificationService.NewNotificationReceived -= NotificationService_NewNotificationReceived;
             _notificationService.NewNotificationReceived += NotificationService_NewNotificationReceived;
         }
 
-        // Benannte Methode f�rs Event (kein anonymes Lambda):
+        // Benannte Methode fÃƒÆ’Ã‚Â¼rs Event (kein anonymes Lambda):
         private void NotificationService_NewNotificationReceived(object sender, NotificationModel notif)
         {
             // Du kannst auch direkt 'await UpdateBadgeAsync();' im Task-Kontext machen
@@ -45,6 +46,10 @@ namespace NBH.Resources.Controls
             // 1) Badge aktualisieren
             await UpdateBadgeAsync();
             // 2) Glocken-GIF abspielen
+            HapticFeedbackHelper.PerformNotificationFeedback();
+#if IOS
+            NBH.Platforms.iOS.iOSHapticFeedback.TriggerLightImpact();
+#endif
             await PlayBellGifOnce();
         }
 
@@ -96,14 +101,12 @@ namespace NBH.Resources.Controls
             // 3) Debug-Output oder Mopups
             Debug.WriteLine("[BellControl] Glocke geklickt -> zeige Popup");
 
-            var notificationService = MauiProgram.Services.GetRequiredService<NotificationService>();
-            var supabaseClient = MauiProgram.Services.GetRequiredService<Supabase.Client>();
-            var logger = MauiProgram.Services.GetRequiredService<ILogger<NotificationListViewModel>>();
-            var authService = MauiProgram.Services.GetRequiredService<AuthService>();
+            var serviceProvider = ((App)Application.Current!).GetServiceProvider();
+            var vm = serviceProvider.GetService(typeof(NotificationListViewModel)) as NotificationListViewModel
+                ?? throw new InvalidOperationException("NotificationListViewModel not registered.");
 
-            // dasselbe VM wie �berall
-            var vm = new NotificationListViewModel(notificationService, supabaseClient, logger, authService);
             var popup = new NotificationPopup(vm);
+
 
             await MopupService.Instance.PushAsync(popup);
         }

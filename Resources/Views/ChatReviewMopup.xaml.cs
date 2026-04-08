@@ -42,7 +42,7 @@ namespace NBH.Resources.Views
             // HttpClient vorbereiten
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("https://entpyczncbnavvudfgrb.supabase.co/rest/v1/")
+                BaseAddress = new Uri($"{AppConfig.SupabaseUrl}/rest/v1/")
             };
 
             // Initialisiere Ratings
@@ -59,16 +59,7 @@ namespace NBH.Resources.Views
         {
             try
             {
-                var userJwt = await SecureStorage.GetAsync("jwt_token");
-                if (string.IsNullOrEmpty(userJwt))
-                {
-                    userJwt = await _authService.GetUserAccessTokenAsync();
-                    await SecureStorage.SetAsync("jwt_token", userJwt);
-                }
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", userJwt);
-                _httpClient.DefaultRequestHeaders.Add("apikey", AppConfig.SupabaseAnonKey);
+                await EnsureAuthHeadersAsync();
 
                 var url = $"users?id=eq.{_reviewedId}";
                 var response = await _httpClient.GetAsync(url);
@@ -159,6 +150,8 @@ namespace NBH.Resources.Views
         // -----------------------------
         private async void OnSubmitButtonClicked(object sender, EventArgs e)
         {
+            await EnsureAuthHeadersAsync();
+
             // Falls 0 nicht erlaubt, setze Minimalwert 1
             int finalFriendliness = (_friendlinessRating < 1) ? 1 : _friendlinessRating;
             int finalResponseTime = (_responseTimeRating < 1) ? 1 : _responseTimeRating;
@@ -166,19 +159,17 @@ namespace NBH.Resources.Views
 
             var review = new
             {
-                chat_id = _chatId,
-                reviewer_id = _reviewerId,
-                reviewed_id = _reviewedId,
-                friendliness = finalFriendliness,
-                response_time = finalResponseTime,
-                helpfulness = finalHelpfulness,
-                created_at = DateTime.UtcNow
+                p_chat_id = _chatId,
+                p_reviewed_id = _reviewedId,
+                p_friendliness = finalFriendliness,
+                p_response_time = finalResponseTime,
+                p_helpfulness = finalHelpfulness
             };
 
             var json = JsonConvert.SerializeObject(review);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("chat_reviews", content);
+            var response = await _httpClient.PostAsync("rpc/submit_chat_review_safe", content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -190,6 +181,21 @@ namespace NBH.Resources.Views
                 var err = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Fehler beim Speichern der Bewertung: {response.StatusCode} - {response.ReasonPhrase}. Details: {err}");
             }
+        }
+
+        private async Task EnsureAuthHeadersAsync()
+        {
+            var userJwt = await SecureStorage.GetAsync("jwt_token");
+            if (string.IsNullOrEmpty(userJwt))
+            {
+                userJwt = await _authService.GetUserAccessTokenAsync();
+                await SecureStorage.SetAsync("jwt_token", userJwt);
+            }
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", userJwt);
+            _httpClient.DefaultRequestHeaders.Add("apikey", AppConfig.SupabaseAnonKey);
         }
 
         // -----------------------------

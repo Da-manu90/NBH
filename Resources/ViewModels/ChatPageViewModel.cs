@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -20,12 +21,15 @@ namespace NBH.Resources.ViewModels
         private readonly AuthService _authService;
         private readonly Supabase.Client _supabaseClient;
         private readonly PhoenixRealtimeService _phoenixService;
+        private readonly NotificationService _notificationService;
 
         // Lazy Loading Konstanten
         private const int InitialMessageCount = 40;
         private const int PageSize = 20;
         private bool _isLoadingMore = false;
         private int _currentOffset = 0;
+        private DateTime? _oldestLoadedAt;
+        private bool _usingUnifiedConversations;
 
         private bool _isLoading;
         public bool IsLoading
@@ -73,6 +77,13 @@ namespace NBH.Resources.ViewModels
             set => SetProperty(ref _chatPartnerId, value);
         }
 
+        private bool _isGroupConversation;
+        public bool IsGroupConversation
+        {
+            get => _isGroupConversation;
+            set => SetProperty(ref _isGroupConversation, value);
+        }
+
         private Guid _chatId;
         public Guid ChatId
         {
@@ -89,7 +100,7 @@ namespace NBH.Resources.ViewModels
                     {
                         LoadMessagesAsync(_chatId);
                         SetChatPartnerInfoAsync(_chatId);
-                        SubscribeToRealtimeMessages(_chatId);
+                        _ = SubscribeToRealtimeMessages(_chatId);
                     }
                 }
             }
@@ -117,12 +128,14 @@ namespace NBH.Resources.ViewModels
         AuthService authService,
         Supabase.Client supabaseClient,
         PhoenixRealtimeService phoenixService,
+        NotificationService notificationService,
         Guid? chatId = null)
         {
             _logger = logger;
             _authService = authService;
             _supabaseClient = supabaseClient;
             _phoenixService = phoenixService ?? throw new ArgumentNullException(nameof(phoenixService));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
             // ENTFERNT: Doppelte Registrierung (Zeile 118 behält die Registrierung)
 
@@ -162,7 +175,7 @@ namespace NBH.Resources.ViewModels
         // ------------------------------------------------------------
         // Realtime Subscribing (PhoenixRealtimeService)
         // ------------------------------------------------------------
-        private async void SubscribeToRealtimeMessages(Guid chatId)
+        private async Task SubscribeToRealtimeMessages(Guid chatId)
         {
             try
             {
@@ -172,6 +185,14 @@ namespace NBH.Resources.ViewModels
                 // Falls du ein JWT brauchst:
                 var userToken = await _authService.GetUserAccessTokenAsync() ?? "";
                 var filter = $"chat_id=eq.{chatId}";
+
+                _phoenixService.SubscribeChannel(
+                    topic: "realtime:public:conversation_messages",
+                    userToken: userToken,
+                    schema: "public",
+                    table: "conversation_messages",
+                    filter: $"conversation_id=eq.{chatId}"
+                );
 
                 _phoenixService.SubscribeChannel(
                     topic: "realtime:public:chat_messages",
@@ -190,6 +211,19 @@ namespace NBH.Resources.ViewModels
             }
         }
 
+        public void Cleanup()
+        {
+            _phoenixService.PostgresChanged -= OnPostgresChanged;
+            _phoenixService.BroadcastReceived -= OnBroadcastReceived;
+            _typingDebounceTimer?.Dispose();
+            _partnerTypingTimeoutTimer?.Dispose();
+            if (ChatId != Guid.Empty)
+            {
+                _ = _phoenixService.UnsubscribeChannelAsync("conversation_messages", $"conversation_id=eq.{ChatId}");
+                _ = _phoenixService.UnsubscribeChannelAsync("chat_messages", $"chat_id=eq.{ChatId}");
+            }
+        }
+
         // ------------------------------------------------------------
         // Realtime Callback => OnPostgresChanged
         // ------------------------------------------------------------
@@ -199,7 +233,7 @@ namespace NBH.Resources.ViewModels
             {
                 Console.WriteLine($"[DEBUG] OnPostgresChanged => Table={e.Table}, EventType={e.EventType}");
 
-                if (e.Table != "chat_messages")
+                if (e.Table != "chat_messages" && e.Table != "conversation_messages")
                     return;
 
                 switch (e.EventType.ToUpper())
@@ -297,7 +331,8 @@ namespace NBH.Resources.ViewModels
             if (ChatId == Guid.Empty) return;
 
             var payload = new { user_id = CurrentUserId, is_typing = isTyping };
-            await _phoenixService.PushAsync("realtime:public:chat_messages", "typing", payload);
+            var topic = _usingUnifiedConversations ? "realtime:public:conversation_messages" : "realtime:public:chat_messages";
+            await _phoenixService.PushAsync(topic, "typing", payload);
         }
 
         // --------------------------------------------------
@@ -306,8 +341,7 @@ namespace NBH.Resources.ViewModels
 
         private void HandleUpdateEvent(Dictionary<string, object> newRecord)
         {
-            var updJson = JsonConvert.SerializeObject(newRecord);
-            var updMsg = JsonConvert.DeserializeObject<ChatMessage>(updJson);
+            var updMsg = DeserializeRealtimeMessage(newRecord);
 
             if (updMsg?.ChatId == ChatId)
             {
@@ -329,14 +363,20 @@ namespace NBH.Resources.ViewModels
 
         private void HandleInsertEvent(Dictionary<string, object> newRecord)
         {
-            var newJson = JsonConvert.SerializeObject(newRecord);
-            var newMsg = JsonConvert.DeserializeObject<ChatMessage>(newJson);
+            var newMsg = DeserializeRealtimeMessage(newRecord);
 
             if (newMsg?.ChatId == ChatId)
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (!Messages.Any(m => m.Id == newMsg.Id))
+                    var isDuplicate =
+                        Messages.Any(m => m.Id == newMsg.Id) ||
+                        Messages.Any(m =>
+                            m.SenderId == newMsg.SenderId &&
+                            string.Equals(m.Message?.Trim(), newMsg.Message?.Trim(), StringComparison.Ordinal) &&
+                            Math.Abs((m.CreatedAt - newMsg.CreatedAt).TotalSeconds) <= 8);
+
+                    if (!isDuplicate)
                     {
                         Messages.Add(newMsg);
                         Console.WriteLine($"[DEBUG] Nachricht hinzugefügt: {newMsg.Message}");
@@ -353,8 +393,7 @@ namespace NBH.Resources.ViewModels
 
         private void HandleDeleteEvent(Dictionary<string, object> oldRecord)
         {
-            var oldJson = JsonConvert.SerializeObject(oldRecord);
-            var oldMsg = JsonConvert.DeserializeObject<ChatMessage>(oldJson);
+            var oldMsg = DeserializeRealtimeMessage(oldRecord);
 
             if (oldMsg?.ChatId == ChatId)
             {
@@ -365,6 +404,22 @@ namespace NBH.Resources.ViewModels
                         Messages.Remove(existing);
                 });
             }
+        }
+
+        private ChatMessage? DeserializeRealtimeMessage(Dictionary<string, object> record)
+        {
+            if (record == null || record.Count == 0)
+            {
+                return null;
+            }
+
+            if (record.ContainsKey("conversation_id") && !record.ContainsKey("chat_id"))
+            {
+                record["chat_id"] = record["conversation_id"];
+            }
+
+            var json = JsonConvert.SerializeObject(record);
+            return JsonConvert.DeserializeObject<ChatMessage>(json);
         }
 
 
@@ -391,61 +446,131 @@ namespace NBH.Resources.ViewModels
 
             try
             {
-                // Neue ChatMessage anlegen
-                var newMsg = new ChatMessage
+                var messageText = CurrentMessageText.Trim();
+                var sentViaUnifiedRpc = await TrySendConversationMessageAsync(messageText).ConfigureAwait(false);
+                if (!sentViaUnifiedRpc)
                 {
-                    Id = Guid.NewGuid(),
-                    ChatId = ChatId,
-                    SenderId = userGuid,
-                    Message = CurrentMessageText,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    // Legacy fallback path
+                    var newMsg = new ChatMessage
+                    {
+                        Id = Guid.NewGuid(),
+                        ChatId = ChatId,
+                        SenderId = userGuid,
+                        Message = messageText,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                // 1) Insert in chat_messages
-                var insertResp = await _supabaseClient
-                    .From<ChatMessage>()
-                    .Insert(newMsg);
+                    var insertResp = await _supabaseClient
+                        .From<ChatMessage>()
+                        .Insert(newMsg);
 
-                if (insertResp.ResponseMessage?.IsSuccessStatusCode == true)
-                {
+                    if (insertResp.ResponseMessage?.IsSuccessStatusCode != true)
+                    {
+                        Console.WriteLine("[DEBUG] Insert in chat_messages NICHT erfolgreich!");
+                        throw new InvalidOperationException(
+                            insertResp.ResponseMessage?.ReasonPhrase ?? "chat_messages insert failed");
+                    }
+
                     Console.WriteLine($"[DEBUG] Inserted ChatMessage => Id={newMsg.Id}, Text='{newMsg.Message}'");
-                }
-                else
-                {
-                    Console.WriteLine("[DEBUG] Insert in chat_messages NICHT erfolgreich!");
+
+                    var updateResp = await _supabaseClient
+                        .From<PublicChat>()
+                        .Where(c => c.Id == ChatId)
+                        .Set(c => c.LastMessage, newMsg.Message)
+                        .Set(c => c.LastMessageDate, newMsg.CreatedAt)
+                        .Update();
+
+                    if (updateResp.ResponseMessage?.IsSuccessStatusCode == true)
+                    {
+                        Console.WriteLine("[DEBUG] public_chat.LastMessage aktualisiert");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[DEBUG] Konnte public_chat nicht aktualisieren!");
+                    }
                 }
 
-                // 2) LastMessage & LastMessageDate in public_chat aktualisieren
-                //    => .Where(c => c.Id == ChatId).Set(...).Update()
-                var updateResp = await _supabaseClient
-                    .From<PublicChat>()
-                    .Where(c => c.Id == ChatId)
-                    .Set(c => c.LastMessage, newMsg.Message)
-                    .Set(c => c.LastMessageDate, newMsg.CreatedAt)
-                    .Update();
-
-                if (updateResp.ResponseMessage?.IsSuccessStatusCode == true)
+                if (sentViaUnifiedRpc)
                 {
-                    Console.WriteLine("[DEBUG] public_chat.LastMessage aktualisiert");
-                }
-                else
-                {
-                    Console.WriteLine("[DEBUG] Konnte public_chat nicht aktualisieren!");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        Messages.Add(new ChatMessage
+                        {
+                            Id = Guid.NewGuid(),
+                            ChatId = ChatId,
+                            SenderId = userGuid,
+                            Message = messageText,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    });
                 }
 
                 // 3) Eingabefeld leeren
                 CurrentMessageText = string.Empty;
-                
+                HapticFeedbackHelper.PerformClickFeedback();
+
                 // 4) Schreibstatus explizit auf false setzen
                 await SendTypingStatusAsync(false);
+
+                // 5) In-App-Benachrichtigung (RPC create_system_notification) — darf Chat nicht „kaputt“ machen
+                if (!IsGroupConversation && ChatPartnerId != Guid.Empty && ChatPartnerId != CurrentUserId)
+                {
+                    try
+                    {
+                        var actionData = JsonConvert.SerializeObject(new Dictionary<string, object>
+                        {
+                            ["chat_id"] = ChatId,
+                            ["sender_id"] = CurrentUserId
+                        });
+
+                        await _notificationService.AddNotificationAsync(
+                            ChatPartnerId,
+                            "Du hast eine neue Nachricht erhalten.",
+                            "chat_message",
+                            actionData);
+                    }
+                    catch (Exception notifyEx)
+                    {
+                        _logger.LogWarning(notifyEx,
+                            "[SendMessageAsync] In-App-Notification fehlgeschlagen (Nachricht wurde gesendet)");
+                        Debug.WriteLine($"[SendMessageAsync] Notification-RPC: {notifyEx.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] SendMessageAsync => {ex.Message}");
+                _logger.LogError(ex, "[SendMessageAsync] Versand fehlgeschlagen");
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await ToastService.ShowErrorAsync(UserFriendlyErrors.Messages.MessageSendError);
                 });
+            }
+        }
+
+        private async Task<bool> TrySendConversationMessageAsync(string text)
+        {
+            try
+            {
+                var response = await _supabaseClient.Rpc("send_conversation_message_safe", new Dictionary<string, object>
+                {
+                    { "p_conversation_id", ChatId },
+                    { "p_text", text },
+                    { "p_metadata", new Dictionary<string, object>() }
+                }).ConfigureAwait(false);
+
+                if (response?.ResponseMessage?.IsSuccessStatusCode != true)
+                {
+                    return false;
+                }
+
+                _usingUnifiedConversations = true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ChatPageViewModel] send_conversation_message_safe fehlgeschlagen, fallback aktiv.");
+                return false;
             }
         }
 
@@ -458,22 +583,29 @@ namespace NBH.Resources.ViewModels
             try
             {
                 Console.WriteLine($"[DEBUG] LoadMessagesAsync => chatId={chatId}");
-
-                // Auf Background-Thread ausführen (nicht Main Thread blockieren):
-                var messages = await Task.Run(async () =>
+                List<ChatMessage> messages;
+                var unifiedMessages = await TryLoadConversationMessagesAsync(chatId, null, InitialMessageCount).ConfigureAwait(false);
+                if (unifiedMessages != null)
                 {
-                    var response = await _supabaseClient
-                        .From<ChatMessage>()
-                        .Where(m => m.ChatId == chatId)
-                        .Order(m => m.CreatedAt, Ordering.Descending)  // Neueste zuerst
-                        .Limit(InitialMessageCount)                     // Nur die letzten 40
-                        .Get()
-                        .ConfigureAwait(false);
+                    messages = unifiedMessages.OrderBy(m => m.CreatedAt).ToList();
+                }
+                else
+                {
+                    // Legacy fallback
+                    messages = await Task.Run(async () =>
+                    {
+                        var response = await _supabaseClient
+                            .From<ChatMessage>()
+                            .Where(m => m.ChatId == chatId)
+                            .Order(m => m.CreatedAt, Ordering.Descending)
+                            .Limit(InitialMessageCount)
+                            .Get()
+                            .ConfigureAwait(false);
 
-                    // Reihenfolge umkehren für chronologische Anzeige:
-                    return response.Models?.OrderBy(m => m.CreatedAt).ToList()
-                           ?? new List<ChatMessage>();
-                });
+                        return response.Models?.OrderBy(m => m.CreatedAt).ToList()
+                               ?? new List<ChatMessage>();
+                    });
+                }
 
                 // UI-Update auf Main Thread:
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -483,6 +615,7 @@ namespace NBH.Resources.ViewModels
                         Messages.Add(msg);
 
                     _currentOffset = messages.Count;
+                    _oldestLoadedAt = messages.FirstOrDefault()?.CreatedAt;
                 });
 
                 if (messages.Count > 0)
@@ -501,6 +634,44 @@ namespace NBH.Resources.ViewModels
             }
         }
 
+        private async Task<List<ChatMessage>?> TryLoadConversationMessagesAsync(Guid conversationId, DateTime? before, int limit)
+        {
+            try
+            {
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_conversation_id", conversationId },
+                    { "p_before", before },
+                    { "p_limit", limit }
+                };
+
+                var response = await _supabaseClient.Rpc("get_conversation_messages_safe", rpcParams).ConfigureAwait(false);
+                if (response?.ResponseMessage?.IsSuccessStatusCode != true)
+                {
+                    return null;
+                }
+
+                var messageItems = string.IsNullOrWhiteSpace(response.Content)
+                    ? new List<ConversationMessageRpcItem>()
+                    : JsonConvert.DeserializeObject<List<ConversationMessageRpcItem>>(response.Content) ?? new List<ConversationMessageRpcItem>();
+
+                _usingUnifiedConversations = true;
+                return messageItems.Select(x => new ChatMessage
+                {
+                    Id = x.Id,
+                    ChatId = x.ConversationId,
+                    SenderId = x.SenderId,
+                    Message = x.Message,
+                    CreatedAt = x.CreatedAt
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ChatPageViewModel] get_conversation_messages_safe fehlgeschlagen, fallback aktiv.");
+                return null;
+            }
+        }
+
         // ------------------------------------------------------------
         // LoadMoreMessagesAsync => Ältere Nachrichten nachladen (Lazy Loading)
         // ------------------------------------------------------------
@@ -511,19 +682,28 @@ namespace NBH.Resources.ViewModels
 
             try
             {
-                var olderMessages = await Task.Run(async () =>
+                List<ChatMessage> olderMessages;
+                if (_usingUnifiedConversations)
                 {
-                    var response = await _supabaseClient
-                        .From<ChatMessage>()
-                        .Where(m => m.ChatId == ChatId)
-                        .Order(m => m.CreatedAt, Ordering.Descending)
-                        .Range(_currentOffset, _currentOffset + PageSize - 1)
-                        .Get()
-                        .ConfigureAwait(false);
+                    var older = await TryLoadConversationMessagesAsync(ChatId, _oldestLoadedAt, PageSize).ConfigureAwait(false);
+                    olderMessages = older?.OrderBy(m => m.CreatedAt).ToList() ?? new List<ChatMessage>();
+                }
+                else
+                {
+                    olderMessages = await Task.Run(async () =>
+                    {
+                        var response = await _supabaseClient
+                            .From<ChatMessage>()
+                            .Where(m => m.ChatId == ChatId)
+                            .Order(m => m.CreatedAt, Ordering.Descending)
+                            .Range(_currentOffset, _currentOffset + PageSize - 1)
+                            .Get()
+                            .ConfigureAwait(false);
 
-                    return response.Models?.OrderBy(m => m.CreatedAt).ToList()
-                           ?? new List<ChatMessage>();
-                });
+                        return response.Models?.OrderBy(m => m.CreatedAt).ToList()
+                               ?? new List<ChatMessage>();
+                    });
+                }
 
                 if (olderMessages.Count > 0)
                 {
@@ -534,6 +714,7 @@ namespace NBH.Resources.ViewModels
                             Messages.Insert(0, olderMessages[i]);
 
                         _currentOffset += olderMessages.Count;
+                        _oldestLoadedAt = Messages.FirstOrDefault()?.CreatedAt;
                     });
 
                     Console.WriteLine($"[LoadMoreMessagesAsync] {olderMessages.Count} ältere Nachrichten nachgeladen.");
@@ -557,6 +738,11 @@ namespace NBH.Resources.ViewModels
         {
             try
             {
+                if (await TrySetConversationHeaderAsync(chatId).ConfigureAwait(false))
+                {
+                    return;
+                }
+
                 var chatResp = await _supabaseClient
                     .From<PublicChat>()
                     .Where(c => c.Id == chatId)
@@ -591,21 +777,75 @@ namespace NBH.Resources.ViewModels
             }
         }
 
+        private async Task<bool> TrySetConversationHeaderAsync(Guid conversationId)
+        {
+            try
+            {
+                var response = await _supabaseClient.Rpc("get_user_conversations_safe", new Dictionary<string, object>
+                {
+                    { "p_user_id", CurrentUserId },
+                    { "p_limit", 200 },
+                    { "p_offset", 0 },
+                    { "p_filter", "all" }
+                }).ConfigureAwait(false);
+
+                if (response?.ResponseMessage?.IsSuccessStatusCode != true || string.IsNullOrWhiteSpace(response.Content))
+                {
+                    return false;
+                }
+
+                var conversations = JsonConvert.DeserializeObject<List<ConversationListRpcItem>>(response.Content)
+                                   ?? new List<ConversationListRpcItem>();
+                var conversation = conversations.FirstOrDefault(x => x.ConversationId == conversationId);
+                if (conversation == null)
+                {
+                    return false;
+                }
+
+                IsGroupConversation = string.Equals(conversation.ConversationType, "group", StringComparison.OrdinalIgnoreCase);
+                ChatPartnerId = conversation.PartnerId ?? Guid.Empty;
+                ChatPartnerName = IsGroupConversation
+                    ? (conversation.Title ?? "Gruppenchat")
+                    : (conversation.PartnerName ?? "Unbekannt");
+
+                var avatar = conversation.AvatarUrl;
+                if (!string.IsNullOrWhiteSpace(avatar) && !avatar.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !IsGroupConversation)
+                {
+                    avatar = _supabaseClient.Storage.From("profile_pictures").GetPublicUrl(avatar);
+                }
+
+                ChatPartnerImageUrl = string.IsNullOrWhiteSpace(avatar)
+                    ? "profile_placeholder.png"
+                    : avatar;
+
+                _usingUnifiedConversations = true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ChatPageViewModel] get_user_conversations_safe Header-Fallback fehlgeschlagen.");
+                return false;
+            }
+        }
+
         private async Task LoadChatPartnerInfoAsync(Guid partnerId)
         {
             try
             {
-                var userResp = await _supabaseClient
-                    .From<User>()
-                    .Where(u => u.Id == partnerId)
-                    .Get();
+                var rpcParams = new Dictionary<string, object>
+                {
+                    { "p_user_id", partnerId }
+                };
 
-                var foundUser = userResp.Models.FirstOrDefault();
+                var response = await _supabaseClient.Rpc("get_public_user_profile", rpcParams);
+                var foundUser = string.IsNullOrWhiteSpace(response?.Content)
+                    ? null
+                    : JsonConvert.DeserializeObject<PublicUserProfile>(response.Content);
+
                 if (foundUser != null)
                 {
                     ChatPartnerName = foundUser.Username ?? "Unbekannt";
 
-                    // Aus der DB => ProfileImageUrl => publicURL generieren
                     ChatPartnerImageUrl = string.IsNullOrEmpty(foundUser.ProfileImageUrl)
                         ? "profile_placeholder.png"
                         : _supabaseClient.Storage
@@ -635,6 +875,23 @@ namespace NBH.Resources.ViewModels
             {
                 Console.WriteLine("[MarkChatAsReadAsync] ChatId oder CurrentUserId fehlt. Abbruch.");
                 return;
+            }
+
+            try
+            {
+                var unifiedResponse = await _supabaseClient.Rpc("mark_conversation_read_self_safe", new Dictionary<string, object>
+                {
+                    { "p_conversation_id", ChatId }
+                });
+                if (unifiedResponse?.ResponseMessage?.IsSuccessStatusCode == true)
+                {
+                    _usingUnifiedConversations = true;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[MarkChatAsReadAsync] mark_conversation_read_self_safe fehlgeschlagen, fallback auf legacy.");
             }
 
             try
@@ -699,46 +956,23 @@ namespace NBH.Resources.ViewModels
                 return;
             }
 
-            // 2) >=12h alt?
-            if (chat.CreatedAt.AddHours(12) > DateTime.UtcNow)
+            var rpcParams = new Dictionary<string, object>
             {
-                Console.WriteLine("Chat noch keine 12h alt. Popup entfällt.");
+                { "p_chat_id", chatId },
+                { "p_reviewed_id", chatPartnerId }
+            };
+
+            var eligibilityResponse = await _supabaseClient.Rpc("can_show_chat_review_popup_safe", rpcParams);
+            var canShowPopup = !string.IsNullOrWhiteSpace(eligibilityResponse?.Content) &&
+                               JsonConvert.DeserializeObject<bool>(eligibilityResponse.Content);
+
+            if (!canShowPopup)
+            {
+                Console.WriteLine("Bewertungspopup laut Eligibility-RPC nicht erlaubt. Popup entfällt.");
                 return;
             }
 
-            // 3) Wurde bereits eine ChatReview abgegeben?
-            var existingReviewResp = await _supabaseClient
-            .From<ChatReview>()
-            .Match(new Dictionary<string, string>
-            {   
-            ["reviewer_id"] = CurrentUserId.ToString(),
-            ["reviewed_id"] = chatPartnerId.ToString(),
-            ["chat_id"] = chatId.ToString()
-            })
-            .Get();
-
-            if (existingReviewResp.Models.Any())
-            {
-                Console.WriteLine("Es existiert bereits eine Chat-Bewertung. Popup entfällt.");
-                return;
-            }
-
-            // 4) Wurde innerhalb der letzten 72h bereits ein Review für diesen Partner verfasst?
-            var partnerReviewResp = await _supabaseClient
-                .From<ChatReview>()
-                .Where(r => r.reviewer_id == CurrentUserId)
-                .Where(r => r.reviewed_id == chatPartnerId)
-                .Order("created_at", Ordering.Descending)
-                .Get();
-
-            var lastReview = partnerReviewResp.Models.FirstOrDefault();
-            if (lastReview != null && lastReview.created_at.AddHours(72) > DateTime.UtcNow)
-            {
-                Console.WriteLine("Bereits eine Partner-Bewertung in den letzten 72h. Popup entfällt.");
-                return;
-            }
-
-            // 5) Alles erfüllt => Popup anzeigen
+            // 3) Alles erfüllt => Popup anzeigen
             Console.WriteLine("Bewertungspopup wird geöffnet...");
             try
             {

@@ -34,12 +34,22 @@ namespace NBH
 
                 if (BindingContext is ChatViewPageViewModel vm)
                 {
+                    await vm.StartRealtimeAsync();
                     await vm.LoadChatsAsync();
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ChatViewPage] OnAppearing Fehler: {ex.Message}");
+            }
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            if (BindingContext is ChatViewPageViewModel vm)
+            {
+                vm.Cleanup();
             }
         }
 
@@ -60,7 +70,7 @@ namespace NBH
             HapticFeedback.Perform(HapticFeedbackType.Click);
 
             // Debug-Ausgabe
-            Console.WriteLine($"ChatViewPage: Chat ausgew�hlt: {selectedChat.Id}");
+            Console.WriteLine($"ChatViewPage: Chat ausgewaehlt: {selectedChat.Id}");
 
             // Navigation zur ChatPage
             Shell.Current.GoToAsync($"ChatPage?chatId={selectedChat.Id}");
@@ -68,5 +78,6 @@ namespace NBH
             // Optional: Selektion aufheben
             ChatsCollectionView.SelectedItem = null;
         }
+
     }
 }

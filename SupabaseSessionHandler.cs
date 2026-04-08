@@ -23,7 +23,9 @@ namespace NBH
             {
                 var json = JsonConvert.SerializeObject(session);
                 // SecureStorage ist asynchron, wir nutzen Task.Run um den synchronen Interface-Call zu bedienen
-                Task.Run(async () => await SecureStorage.Default.SetAsync(Key, json)).Wait();
+                Task.Run(async () => await SecureStorage.Default.SetAsync(Key, json).ConfigureAwait(false))
+                    .GetAwaiter()
+                    .GetResult();
                 Debug.WriteLine("[SupabaseSessionHandler] Session erfolgreich im SecureStorage gespeichert.");
             }
             catch (Exception ex)
@@ -52,7 +54,9 @@ namespace NBH
             try
             {
                 // Versuche zuerst SecureStorage
-                var json = Task.Run(async () => await SecureStorage.Default.GetAsync(Key)).Result;
+                var json = Task.Run(async () => await SecureStorage.Default.GetAsync(Key).ConfigureAwait(false))
+                    .GetAwaiter()
+                    .GetResult();
                 
                 // Fallback auf Preferences (Migration)
                 if (string.IsNullOrEmpty(json))

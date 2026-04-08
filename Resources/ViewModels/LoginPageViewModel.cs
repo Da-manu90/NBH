@@ -1,5 +1,5 @@
 // ============================================================
-// LoginPageViewModel.cs – Professionelle Version
+// LoginPageViewModel.cs - Professionelle Version
 // ============================================================
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,47 +16,32 @@ namespace NBH.Resources.ViewModels
 {
     public partial class LoginPageViewModel : ObservableObject
     {
-        private readonly AuthService            _authService;
-        private readonly NotificationService    _notificationService;
-        private readonly INavigationService     _navigationService;
+        private readonly AuthService _authService;
+        private readonly AppSessionFlowService _appSessionFlowService;
+        private readonly INavigationService _navigationService;
         private readonly ILogger<LoginPageViewModel> _logger;
+        private readonly Dictionary<string, (int Attempts, DateTime LockoutEnd)> _loginAttempts = new();
 
-        private readonly Dictionary<string, (int Attempts, DateTime LockoutEnd)>
-            _loginAttempts = new();
-
-        // --------------------------------------------------------
-        // Properties mit [ObservableProperty]
-        // --------------------------------------------------------
-
-        [ObservableProperty] private string _email    = string.Empty;
+        [ObservableProperty] private string _email = string.Empty;
         [ObservableProperty] private string _password = string.Empty;
-
-        [ObservableProperty] private string _errorMessage  = string.Empty;
-        [ObservableProperty] private bool   _isErrorVisible;
+        [ObservableProperty] private string _errorMessage = string.Empty;
+        [ObservableProperty] private bool _isErrorVisible;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(SignInCommand))]
         private bool _isBusy;
 
-        // --------------------------------------------------------
-        // Konstruktor
-        // --------------------------------------------------------
-
         public LoginPageViewModel(
             AuthService authService,
-            NotificationService notificationService,
+            AppSessionFlowService appSessionFlowService,
             INavigationService navigationService,
             ILogger<LoginPageViewModel> logger)
         {
-            _authService         = authService         ?? throw new ArgumentNullException(nameof(authService));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-            _navigationService   = navigationService   ?? throw new ArgumentNullException(nameof(navigationService));
-            _logger              = logger              ?? throw new ArgumentNullException(nameof(logger));
+            _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            _appSessionFlowService = appSessionFlowService ?? throw new ArgumentNullException(nameof(appSessionFlowService));
+            _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-
-        // --------------------------------------------------------
-        // Commands
-        // --------------------------------------------------------
 
         private bool CanSignIn() => !IsBusy;
 
@@ -106,7 +91,10 @@ namespace NBH.Resources.ViewModels
         [RelayCommand]
         private async Task SocialLoginAsync(string provider)
         {
-            if (string.IsNullOrEmpty(provider)) provider = "apple";
+            if (string.IsNullOrEmpty(provider))
+            {
+                provider = "apple";
+            }
 
             IsBusy = true;
             HideError();
@@ -123,12 +111,12 @@ namespace NBH.Resources.ViewModels
                     + "&scope=openid+email+profile"
                     + $"&state={state}";
 
-                _logger.LogInformation($"Starte {provider} Social Login.");
+                _logger.LogInformation("Starte {Provider} Social Login.", provider);
                 await Launcher.OpenAsync(new Uri(providerUrl));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Fehler beim Social Login mit {provider}.");
+                _logger.LogError(ex, "Fehler beim Social Login mit {Provider}.", provider);
                 ShowError($"{provider} Login fehlgeschlagen. Bitte später erneut versuchen.");
             }
             finally
@@ -137,22 +125,16 @@ namespace NBH.Resources.ViewModels
             }
         }
 
-        // --------------------------------------------------------
-        // Private Hilfsmethoden
-        // --------------------------------------------------------
-
         private async Task OnLoginSuccessAsync()
         {
             _logger.LogInformation("Login erfolgreich.");
             _loginAttempts.Remove(Email);
 
-            await _notificationService.InitializeAsync();
             await SyncOneSignalSubscriptionAsync();
 
-            await ToastService.ShowSuccessAsync("Login erfolgreich! Willkommen zurÃ¼ck.");
-            await Task.Delay(800); // Kurze Pause damit der User den Toast sieht
-
-            await _navigationService.GoToAsync(Routes.ProfilePage);
+            await ToastService.ShowSuccessAsync("Login erfolgreich! Willkommen zurück.");
+            await Task.Delay(800);
+            await _appSessionFlowService.HandleLoginSuccessAsync();
 
 #if IOS
             iOSHapticFeedback.TriggerHeavyImpact();
@@ -169,13 +151,16 @@ namespace NBH.Resources.ViewModels
                 HapticFeedback.Perform(HapticFeedbackType.Click);
                 return false;
             }
+
             return true;
         }
 
         private bool CheckRateLimit()
         {
             if (!_loginAttempts.TryGetValue(Email, out var data))
+            {
                 return true;
+            }
 
             if (DateTime.UtcNow < data.LockoutEnd)
             {
@@ -191,7 +176,6 @@ namespace NBH.Resources.ViewModels
         {
             var current = _loginAttempts.GetValueOrDefault(Email);
             var newAttempts = current.Attempts + 1;
-
             var lockoutEnd = newAttempts >= 5
                 ? DateTime.UtcNow.AddMinutes(5)
                 : DateTime.UtcNow;
@@ -200,7 +184,8 @@ namespace NBH.Resources.ViewModels
 
             _logger.LogWarning(
                 "Fehlgeschlagener Login-Versuch {Attempt} für {Email}.",
-                newAttempts, Email);
+                newAttempts,
+                Email);
         }
 
         private async Task SyncOneSignalSubscriptionAsync()
@@ -209,7 +194,9 @@ namespace NBH.Resources.ViewModels
             {
                 var subscriptionId = OneSignal.User.PushSubscription?.Id;
                 if (string.IsNullOrEmpty(subscriptionId))
+                {
                     return;
+                }
 
                 await _authService.UpdateOneSignalSubscriptionAsync(subscriptionId);
 
@@ -233,13 +220,13 @@ namespace NBH.Resources.ViewModels
 
         private void ShowError(string message)
         {
-            ErrorMessage   = message;
+            ErrorMessage = message;
             IsErrorVisible = true;
         }
 
         private void HideError()
         {
-            ErrorMessage   = string.Empty;
+            ErrorMessage = string.Empty;
             IsErrorVisible = false;
         }
     }
